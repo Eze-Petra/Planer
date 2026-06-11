@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+/*
+  Identidad visual: "agenda de papel técnico".
+  Fondo papel con renglones tenues, tinta azul como primario, ámbar para
+  fechas límite. Las horas siempre en monospace tabular (JetBrains Mono):
+  ese es el sello de la app — los números de tiempo se leen como instrumento,
+  no como texto.
+*/
+
+@theme {
+  --color-paper: #fbfaf6;
+  --color-paper-2: #f3f1ea;
+  --color-line: #e3e0d5;
+  --color-ink: #1c2230;
+  --color-ink-soft: #5b6172;
+  --color-primary: #2b4acb;
+  --color-primary-soft: #e8ecfb;
+  --color-accent: #b45309;
+  --color-accent-soft: #fdf0e0;
+  --color-danger: #b3261e;
+
+  --font-display: "Space Grotesk", system-ui, sans-serif;
+  --font-body: "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+}
+
+html {
+  background: var(--color-paper);
+  color: var(--color-ink);
+  font-family: var(--font-body);
+}
+
+/* Renglones de agenda: líneas horizontales muy tenues en el fondo */
+body {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 31px,
+    color-mix(in srgb, var(--color-line) 55%, transparent) 31px,
+    color-mix(in srgb, var(--color-line) 55%, transparent) 32px
+  );
+  min-height: 100vh;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+}
+
+/* Sello de la app: toda hora/duración va en mono con números tabulares */
+.time-chip {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8rem;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  border-radius: 0.375rem;
+  padding: 0.125rem 0.45rem;
+}
+
+.time-chip--accent {
+  background: var(--color-accent-soft);
+  color: var(--color-accent);
+}
+
+input, select {
+  accent-color: var(--color-primary);
+}
+
+input:focus-visible,
+select:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
