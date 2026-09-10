@@ -1,16 +1,17 @@
 import { useState } from "react";
 import { usePlannerStore } from "../../store/usePlannerStore";
 import {
-  DAY_LABELS, WEEK_ORDER, PALETTE, type DayOfWeek, type FixedSlot,
+  DAY_LABELS, WEEK_ORDER, PALETTE, type DayOfWeek, type FixedActivity, type FixedSlot,
 } from "../../types/models";
 import { durationMin, formatDuration } from "../../lib/time";
 import {
-  Card, Field, PrimaryButton, IconDelete, ColorPicker, EmptyState, inputClass,
+  Card, Field, PrimaryButton, IconDelete, IconEdit, ColorPicker, EmptyState, inputClass,
 } from "../../components/ui";
 
 export function FixedActivities() {
-  const { fixed, addFixed, removeFixed } = usePlannerStore();
+  const { fixed, addFixed, updateFixed, removeFixed } = usePlannerStore();
 
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [color, setColor] = useState<string>(PALETTE[0]);
 
@@ -19,7 +20,7 @@ export function FixedActivities() {
   const [slotStart, setSlotStart] = useState("08:00");
   const [slotEnd, setSlotEnd] = useState("09:00");
 
-  // Franjas ya confirmadas para la actividad que se está cargando.
+  // Franjas ya confirmadas para la actividad que se está cargando (o editando).
   const [pendingSlots, setPendingSlots] = useState<FixedSlot[]>([]);
 
   const toggleSlotDay = (d: DayOfWeek) =>
@@ -48,11 +49,30 @@ export function FixedActivities() {
 
   const valid = name.trim().length > 0 && pendingSlots.length > 0;
 
+  const resetForm = () => {
+    setEditingId(null);
+    setName("");
+    setColor(PALETTE[0]);
+    setPendingSlots([]);
+    setSlotDays([]);
+  };
+
   const submit = () => {
     if (!valid) return;
-    addFixed({ name: name.trim(), slots: pendingSlots, color });
-    setName("");
-    setPendingSlots([]);
+    if (editingId) {
+      updateFixed(editingId, { name: name.trim(), slots: pendingSlots, color });
+    } else {
+      addFixed({ name: name.trim(), slots: pendingSlots, color });
+    }
+    resetForm();
+  };
+
+  const startEdit = (a: FixedActivity) => {
+    setEditingId(a.id);
+    setName(a.name);
+    setColor(a.color);
+    setPendingSlots(a.slots);
+    setSlotDays([]);
   };
 
   const slotCrossesMidnight = slotEnd <= slotStart;
@@ -146,9 +166,20 @@ export function FixedActivities() {
           <Field label="Color">
             <ColorPicker value={color} onChange={setColor} />
           </Field>
-          <PrimaryButton onClick={submit} disabled={!valid}>
-            Agregar actividad
-          </PrimaryButton>
+          <div className="flex items-center gap-2">
+            {editingId && (
+              <button
+                type="button"
+                onClick={resetForm}
+                className="rounded-lg px-3 py-2 text-sm text-ink-soft hover:text-ink"
+              >
+                Cancelar
+              </button>
+            )}
+            <PrimaryButton onClick={submit} disabled={!valid}>
+              {editingId ? "Guardar cambios" : "Agregar actividad"}
+            </PrimaryButton>
+          </div>
         </div>
 
         {fixed.length === 0 ? (
@@ -159,7 +190,12 @@ export function FixedActivities() {
         ) : (
           <ul className="flex flex-col divide-y divide-line">
             {fixed.map((a) => (
-              <li key={a.id} className="flex items-center gap-3 py-2.5">
+              <li
+                key={a.id}
+                className={`flex items-center gap-3 py-2.5 ${
+                  editingId === a.id ? "-mx-2 rounded-lg bg-primary-soft px-2" : ""
+                }`}
+              >
                 <span
                   className="h-3 w-3 shrink-0 rounded-full"
                   style={{ background: a.color }}
@@ -176,8 +212,12 @@ export function FixedActivities() {
                       )),
                   )}
                 </div>
+                <IconEdit onClick={() => startEdit(a)} label={`Editar ${a.name}`} />
                 <IconDelete
-                  onClick={() => removeFixed(a.id)}
+                  onClick={() => {
+                    if (editingId === a.id) resetForm();
+                    removeFixed(a.id);
+                  }}
                   label={`Eliminar ${a.name}`}
                 />
               </li>

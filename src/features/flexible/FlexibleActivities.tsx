@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { usePlannerStore } from "../../store/usePlannerStore";
-import { formatDuration } from "../../lib/time";
+import { durationMin, formatDuration } from "../../lib/time";
 import {
   Card, Field, PrimaryButton, IconDelete, EmptyState, inputClass,
 } from "../../components/ui";
@@ -15,13 +15,16 @@ export function FlexibleActivities() {
   const [winStart, setWinStart] = useState("12:00");
   const [winEnd, setWinEnd] = useState("15:00");
 
-  const valid = name.trim().length > 0 && durationMinutes > 0 && timesPerDay > 0;
+  // Si hay franja preferida, la duración sale de ahí — evita que queden
+  // desincronizadas (ej. franja de 1h con duración manual de "1 min").
+  const effectiveDuration = useWindow ? durationMin(winStart, winEnd) : durationMinutes;
+  const valid = name.trim().length > 0 && effectiveDuration > 0 && timesPerDay > 0;
 
   const submit = () => {
     if (!valid) return;
     addFlexible({
       name: name.trim(),
-      durationMin: durationMinutes,
+      durationMin: effectiveDuration,
       timesPerDay,
       preferredWindow: useWindow ? { start: winStart, end: winEnd } : undefined,
     });
@@ -30,8 +33,8 @@ export function FlexibleActivities() {
 
   return (
     <Card
-      title="Esenciales variables"
-      subtitle="Sin horario fijo: el planificador las ubica cada día (comer, cocinar, descansar)."
+      title="Rutina diaria"
+      subtitle="Sin horario fijo: el planificador la ubica cada día (comer, cocinar, descansar)."
     >
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto_auto]">
@@ -43,13 +46,19 @@ export function FlexibleActivities() {
               placeholder="Almorzar"
             />
           </Field>
-          <Field label="Duración (min)">
-            <input
-              type="number" min={5} step={5}
-              className={`${inputClass} w-28`}
-              value={durationMinutes}
-              onChange={(e) => setDurationMinutes(Number(e.target.value))}
-            />
+          <Field label={useWindow ? "Duración" : "Duración (min)"}>
+            {useWindow ? (
+              <div className={`${inputClass} flex w-28 items-center justify-center bg-paper-2 text-ink-soft`}>
+                {formatDuration(effectiveDuration)}
+              </div>
+            ) : (
+              <input
+                type="number" min={5} step={5}
+                className={`${inputClass} w-28`}
+                value={durationMinutes}
+                onChange={(e) => setDurationMinutes(Number(e.target.value))}
+              />
+            )}
           </Field>
           <Field label="Veces por día">
             <input
@@ -68,7 +77,7 @@ export function FlexibleActivities() {
               checked={useWindow}
               onChange={(e) => setUseWindow(e.target.checked)}
             />
-            Preferir una franja horaria
+            Preferir una franja horaria (define la duración sola)
           </label>
           {useWindow && (
             <>
@@ -84,7 +93,7 @@ export function FlexibleActivities() {
           )}
           <div className="ml-auto">
             <PrimaryButton onClick={submit} disabled={!valid}>
-              Agregar esencial
+              Agregar rutina
             </PrimaryButton>
           </div>
         </div>

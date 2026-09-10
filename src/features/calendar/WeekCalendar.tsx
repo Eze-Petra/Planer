@@ -29,12 +29,12 @@ export function WeekCalendar() {
 
   return (
     <div className="rounded-xl border border-line bg-paper shadow-[0_1px_2px_rgba(28,34,48,0.06)]">
-      <header className="flex items-center justify-between border-b border-line px-5 py-4">
+      <header className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4">
         <div>
           <h2 className="text-lg font-semibold">Semana</h2>
           <p className="mt-0.5 text-sm text-ink-soft">
-            Desde el {format(schedule.weekStart, "d 'de' MMMM", { locale: es })} — actividades
-            fijas, esenciales y estudio asignado por el planificador.
+            Desde el {format(schedule.weekStart, "d 'de' MMMM", { locale: es })}. El color de cada
+            bloque es el de su materia o actividad; el borde indica el tipo.
           </p>
         </div>
         <Legend />
@@ -116,24 +116,25 @@ function DayColumn(props: { day: DayOfWeek; blocks: ScheduledBlock[]; hours: num
   );
 }
 
+const LEGEND_ITEMS: Array<{ label: string; hint: string; kind: BlockKind }> = [
+  { label: "Fija", hint: "vos la cargaste con horario exacto", kind: "fixed" },
+  { label: "Rutina", hint: "el planificador la ubica sola cada día", kind: "flexible" },
+  { label: "Estudio", hint: "tiempo asignado para exámenes y TPs", kind: "study" },
+];
+
 function Legend() {
   return (
-    <div className="flex items-center gap-3 text-xs text-ink-soft">
-      <LegendItem label="Fija" border="solid" />
-      <LegendItem label="Esencial" border="dashed" />
-      <LegendItem label="Estudio" border="solid" faded />
+    <div className="flex flex-col gap-1 text-xs text-ink-soft">
+      {LEGEND_ITEMS.map((item) => (
+        <span key={item.kind} className="flex items-center gap-1.5" title={item.hint}>
+          <span
+            className="h-2.5 w-3.5 rounded-sm border-2 border-ink-soft/70 bg-ink-soft/15"
+            style={{ borderStyle: KIND_STYLE[item.kind].border }}
+          />
+          <span className="font-medium text-ink">{item.label}</span>
+          <span className="hidden sm:inline">— {item.hint}</span>
+        </span>
+      ))}
     </div>
-  );
-}
-
-function LegendItem(props: { label: string; border: string; faded?: boolean }) {
-  return (
-    <span className="flex items-center gap-1.5">
-      <span
-        className="h-2.5 w-2.5 rounded-sm bg-primary"
-        style={{ opacity: props.faded ? 0.75 : 1, borderStyle: props.border }}
-      />
-      {props.label}
-    </span>
   );
 }

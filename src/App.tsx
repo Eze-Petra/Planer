@@ -40,7 +40,7 @@ export default function App() {
       {tab === "datos" ? (
         <main className="flex flex-col gap-5">
           <p className="text-sm text-ink-soft">
-            {fixed.length} actividades fijas · {flexible.length} esenciales ·{" "}
+            {fixed.length} actividades fijas · {flexible.length} rutinas ·{" "}
             {subjects.length} materias con {examCount} fechas de examen
           </p>
           <FixedActivities />

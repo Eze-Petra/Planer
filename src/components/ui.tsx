@@ -67,6 +67,22 @@ export function IconDelete(props: { onClick: () => void; label: string }) {
   );
 }
 
+export function IconEdit(props: { onClick: () => void; label: string }) {
+  return (
+    <button
+      type="button"
+      onClick={props.onClick}
+      aria-label={props.label}
+      title={props.label}
+      className="rounded p-1 text-ink-soft transition-colors hover:text-primary"
+    >
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M12 20h9M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    </button>
+  );
+}
+
 export function ColorPicker(props: { value: string; onChange: (c: string) => void }) {
   return (
     <div className="flex gap-1.5" role="radiogroup" aria-label="Color">
