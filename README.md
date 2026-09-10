@@ -19,11 +19,11 @@ src/
 ├── store/usePlannerStore.ts  # Estado global (Zustand) + persistencia localStorage
 ├── components/ui.tsx      # Primitivas visuales compartidas
 ├── features/
-│   ├── fixed/             # Actividades fijas (día + horario exacto)
+│   ├── fixed/             # Actividades fijas (día + horario exacto, franjas por día)
 │   ├── flexible/          # Esenciales variables (duración, sin horario)
 │   ├── subjects/          # Materias, parciales/finales, TPs
-│   ├── scheduler/         # (próximo) algoritmo de asignación de bloques
-│   └── calendar/          # (próximo) vista semanal 00:00–23:59
+│   ├── scheduler/         # Algoritmo de asignación: relleno de huecos por prioridad
+│   └── calendar/          # Vista semanal 06:00–23:59 con los bloques del scheduler
 ├── App.tsx                # Shell con pestañas
 └── index.css              # Tokens de diseño (tema "agenda de papel técnico")
 ```
@@ -31,6 +31,6 @@ src/
 ## Roadmap
 
 - [x] Módulo de carga de datos
-- [ ] Scheduler: prioridad = f(complejidad, días restantes), relleno de huecos
-- [ ] Vista calendario semanal con grilla horaria
+- [x] Scheduler: prioridad = f(complejidad, días restantes), relleno de huecos
+- [x] Vista calendario semanal con grilla horaria
 - [ ] Export/import JSON de los datos

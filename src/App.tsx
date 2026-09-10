@@ -3,6 +3,7 @@ import { usePlannerStore } from "./store/usePlannerStore";
 import { FixedActivities } from "./features/fixed/FixedActivities";
 import { FlexibleActivities } from "./features/flexible/FlexibleActivities";
 import { Subjects } from "./features/subjects/Subjects";
+import { WeekCalendar } from "./features/calendar/WeekCalendar";
 
 type Tab = "datos" | "calendario";
 
@@ -47,12 +48,8 @@ export default function App() {
           <Subjects />
         </main>
       ) : (
-        <main className="rounded-xl border border-dashed border-line p-10 text-center text-ink-soft">
-          <p className="font-medium">Vista semanal — próximo módulo</p>
-          <p className="mt-1 text-sm">
-            Acá va el calendario de 00:00 a 23:59 generado por el scheduler a
-            partir de los datos que cargues en la otra pestaña.
-          </p>
+        <main>
+          <WeekCalendar />
         </main>
       )}
     </div>
