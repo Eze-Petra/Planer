@@ -5,6 +5,7 @@ import type {
   FlexibleActivity,
   Subject,
   Exam,
+  ExamBoard,
   Task,
   DayOfWeek,
 } from "../types/models";
@@ -26,6 +27,7 @@ interface PlannerState {
   fixed: FixedActivity[];
   flexible: FlexibleActivity[];
   subjects: Subject[];
+  examBoards: ExamBoard[];
 
   addFixed: (a: Omit<FixedActivity, "id">) => void;
   updateFixed: (id: string, patch: Partial<FixedActivity>) => void;
@@ -41,6 +43,9 @@ interface PlannerState {
 
   addExam: (subjectId: string, exam: Omit<Exam, "id">) => void;
   removeExam: (subjectId: string, examId: string) => void;
+
+  addExamBoard: (board: Omit<ExamBoard, "id">) => void;
+  removeExamBoard: (id: string) => void;
 
   addTask: (subjectId: string, task: Omit<Task, "id" | "done">) => void;
   toggleTask: (subjectId: string, taskId: string) => void;
@@ -59,6 +64,7 @@ export const usePlannerStore = create<PlannerState>()(
       fixed: [],
       flexible: [],
       subjects: [],
+      examBoards: [],
 
       addFixed: (a) =>
         set((st) => ({ fixed: [...st.fixed, { ...a, id: uid() }] })),
@@ -108,6 +114,23 @@ export const usePlannerStore = create<PlannerState>()(
           subjects: patchSubject(st.subjects, subjectId, (s) => ({
             ...s,
             exams: s.exams.filter((e) => e.id !== examId),
+          })),
+        })),
+
+      addExamBoard: (board) =>
+        set((st) => ({
+          examBoards: [...st.examBoards, { ...board, id: uid() }].sort((a, b) =>
+            a.date.localeCompare(b.date),
+          ),
+        })),
+      removeExamBoard: (id) =>
+        set((st) => ({
+          examBoards: st.examBoards.filter((b) => b.id !== id),
+          // Los finales que apuntaban a esta mesa pierden el vínculo pero
+          // conservan la fecha ya resuelta, no quedan huérfanos ni se borran.
+          subjects: st.subjects.map((s) => ({
+            ...s,
+            exams: s.exams.map((e) => (e.boardId === id ? { ...e, boardId: undefined } : e)),
           })),
         })),
 

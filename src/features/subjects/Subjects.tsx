@@ -75,11 +75,12 @@ function daysLeft(date: string): number {
 
 function SubjectCard(props: { subject: Subject; onRemove: () => void }) {
   const { subject } = props;
-  const { addExam, removeExam, addTask, toggleTask, removeTask } = usePlannerStore();
+  const { examBoards, addExam, removeExam, addTask, toggleTask, removeTask } = usePlannerStore();
 
   // Form de examen
   const [kind, setKind] = useState<ExamKind>("parcial");
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(""); // fecha manual, solo para parciales
+  const [boardId, setBoardId] = useState(""); // mesa elegida, solo para finales
   const [complexity, setComplexity] = useState<Complexity>(3);
 
   // Form de TP
@@ -87,10 +88,19 @@ function SubjectCard(props: { subject: Subject; onRemove: () => void }) {
   const [taskDue, setTaskDue] = useState("");
   const [taskHours, setTaskHours] = useState(4);
 
+  const examValid = kind === "final" ? boardId.length > 0 : date.length > 0;
+
   const submitExam = () => {
-    if (!date) return;
-    addExam(subject.id, { kind, date, complexity });
-    setDate("");
+    if (!examValid) return;
+    if (kind === "final") {
+      const board = examBoards.find((b) => b.id === boardId);
+      if (!board) return;
+      addExam(subject.id, { kind, date: board.date, complexity, boardId: board.id });
+      setBoardId("");
+    } else {
+      addExam(subject.id, { kind, date, complexity });
+      setDate("");
+    }
   };
 
   const submitTask = () => {
@@ -126,6 +136,7 @@ function SubjectCard(props: { subject: Subject; onRemove: () => void }) {
           <ul className="flex flex-col gap-1.5">
             {subject.exams.map((e) => {
               const left = daysLeft(e.date);
+              const board = e.boardId ? examBoards.find((b) => b.id === e.boardId) : undefined;
               return (
                 <li key={e.id} className="flex items-center gap-2 text-sm">
                   <span
@@ -137,6 +148,7 @@ function SubjectCard(props: { subject: Subject; onRemove: () => void }) {
                   >
                     {e.kind}
                   </span>
+                  {board && <span className="text-ink-soft">{board.name}</span>}
                   <span className="time-chip">
                     {format(parseISO(e.date), "dd MMM", { locale: es })}
                   </span>
@@ -169,13 +181,35 @@ function SubjectCard(props: { subject: Subject; onRemove: () => void }) {
               <option value="parcial">Parcial</option>
               <option value="final">Final</option>
             </select>
-            <input
-              type="date"
-              aria-label="Fecha del examen"
-              className={inputClass}
-              value={date}
-              onChange={(e) => setDate(e.target.value)}
-            />
+            {kind === "final" ? (
+              examBoards.length === 0 ? (
+                <span className="text-sm text-ink-soft">
+                  Cargá una mesa de examen primero.
+                </span>
+              ) : (
+                <select
+                  aria-label="Mesa de examen"
+                  className={inputClass}
+                  value={boardId}
+                  onChange={(e) => setBoardId(e.target.value)}
+                >
+                  <option value="">Elegir mesa…</option>
+                  {examBoards.map((b) => (
+                    <option key={b.id} value={b.id}>
+                      {b.name} — {format(parseISO(b.date), "dd MMM", { locale: es })}
+                    </option>
+                  ))}
+                </select>
+              )
+            ) : (
+              <input
+                type="date"
+                aria-label="Fecha del examen"
+                className={inputClass}
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+              />
+            )}
             <label className="flex items-center gap-2 text-sm text-ink-soft">
               Complejidad
               <input
@@ -185,7 +219,7 @@ function SubjectCard(props: { subject: Subject; onRemove: () => void }) {
               />
               <span className="time-chip">{complexity}</span>
             </label>
-            <PrimaryButton onClick={submitExam} disabled={!date}>
+            <PrimaryButton onClick={submitExam} disabled={!examValid}>
               Agregar
             </PrimaryButton>
           </div>

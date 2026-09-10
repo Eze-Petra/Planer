@@ -4,9 +4,13 @@ import { es } from "date-fns/locale";
 import { usePlannerStore } from "../../store/usePlannerStore";
 import { DAY_LABELS, WEEK_ORDER, type DayOfWeek } from "../../types/models";
 import { toMinutes } from "../../lib/time";
-import { buildWeekSchedule, type BlockKind, type ScheduledBlock } from "../scheduler/schedule";
+import {
+  buildWeekSchedule, AWAKE_START_MIN, type BlockKind, type ScheduledBlock,
+} from "../scheduler/schedule";
 
-const START_HOUR = 6; // la grilla arranca a las 06:00 para no desperdiciar espacio en horas de sueño
+// Misma hora en que el scheduler empieza a ubicar rutina/estudio — así la
+// grilla nunca recorta un bloque que el scheduler sí puso en pantalla.
+const START_HOUR = AWAKE_START_MIN / 60;
 const END_HOUR = 24;
 const HOUR_HEIGHT_PX = 48;
 const GRID_HEIGHT_PX = (END_HOUR - START_HOUR) * HOUR_HEIGHT_PX;

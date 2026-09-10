@@ -3,6 +3,7 @@ import { usePlannerStore } from "./store/usePlannerStore";
 import { FixedActivities } from "./features/fixed/FixedActivities";
 import { FlexibleActivities } from "./features/flexible/FlexibleActivities";
 import { Subjects } from "./features/subjects/Subjects";
+import { ExamBoards } from "./features/examBoards/ExamBoards";
 import { WeekCalendar } from "./features/calendar/WeekCalendar";
 
 type Tab = "datos" | "calendario";
@@ -45,6 +46,7 @@ export default function App() {
           </p>
           <FixedActivities />
           <FlexibleActivities />
+          <ExamBoards />
           <Subjects />
         </main>
       ) : (

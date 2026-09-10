@@ -1,4 +1,6 @@
-import { startOfWeek, addDays, isBefore, startOfDay, differenceInCalendarDays } from "date-fns";
+import {
+  startOfWeek, addDays, isBefore, startOfDay, differenceInCalendarDays, parseISO,
+} from "date-fns";
 import type {
   FixedActivity,
   FlexibleActivity,
@@ -34,11 +36,18 @@ interface Interval {
 }
 
 /** Heurísticas del scheduler — ajustables sin tocar el algoritmo. */
-const STUDY_MIN_PER_COMPLEXITY = 120; // minutos de estudio por punto de complejidad de un examen
+export const STUDY_MIN_PER_COMPLEXITY = 120; // minutos de estudio por punto de complejidad de un examen
 const MAX_SESSION_MIN = 90; // sesión de estudio más larga que arma por día para un mismo ítem
 const MIN_SESSION_MIN = 20; // hueco más chico que vale la pena usar
 const FALLBACK_TASK_DAYS_LEFT = 21; // "días restantes" asumidos para un TP sin fecha de entrega
 const DEFAULT_ESSENTIAL_COLOR = "#0E7490";
+/**
+ * El scheduler no ubica rutina ni estudio antes de esta hora salvo que ya
+ * esté ocupada por una actividad fija — sin esto, un día sin nada cargado
+ * deja el hueco más grande arrancando a las 00:00 y el estudio termina de
+ * madrugada. Coincide con la hora en que arranca la grilla del calendario.
+ */
+export const AWAKE_START_MIN = 360; // 06:00
 
 function urgency(daysLeft: number): number {
   // Cuanto más cerca la fecha, más urgente. Clamp para no dividir por 0/negativos.
@@ -86,7 +95,7 @@ type FreeByDay = Record<DayOfWeek, Interval[]>;
 
 function initFreeByDay(): FreeByDay {
   const free = {} as FreeByDay;
-  for (const d of WEEK_ORDER) free[d] = [{ startMin: 0, endMin: 1440 }];
+  for (const d of WEEK_ORDER) free[d] = [{ startMin: AWAKE_START_MIN, endMin: 1440 }];
   return free;
 }
 
@@ -182,7 +191,7 @@ function buildWorkItems(subjects: Subject[], weekDays: Date[], today: Date): Wor
 
   for (const subject of subjects) {
     for (const exam of subject.exams) {
-      const examDate = startOfDay(new Date(exam.date));
+      const examDate = startOfDay(parseISO(exam.date));
       const daysLeft = differenceInCalendarDays(examDate, today);
       if (daysLeft < 0) continue; // ya pasó
       const dueDayIndex = Math.min(
@@ -201,12 +210,12 @@ function buildWorkItems(subjects: Subject[], weekDays: Date[], today: Date): Wor
     for (const task of subject.tasks) {
       if (task.done) continue;
       const daysLeft = task.dueDate
-        ? differenceInCalendarDays(startOfDay(new Date(task.dueDate)), today)
+        ? differenceInCalendarDays(startOfDay(parseISO(task.dueDate)), today)
         : FALLBACK_TASK_DAYS_LEFT;
       if (daysLeft < 0) continue;
       const dueDayIndex = task.dueDate
         ? Math.min(
-            Math.max(differenceInCalendarDays(startOfDay(new Date(task.dueDate)), weekDays[0]), 0),
+            Math.max(differenceInCalendarDays(startOfDay(parseISO(task.dueDate)), weekDays[0]), 0),
             lastDayIndex,
           )
         : lastDayIndex;
@@ -297,4 +306,24 @@ export function buildWeekSchedule(
   const studyBlocks = applyStudyItems(free, workItems, firstSchedulableDayIndex);
 
   return { weekStart, blocks: [...fixedBlocks, ...flexibleBlocks, ...studyBlocks] };
+}
+
+/**
+ * Promedio de minutos libres por día una vez descontadas las actividades
+ * fijas y la rutina diaria (sin contar estudio). Sirve como estimación
+ * gruesa de cuánta capacidad de estudio hay por día, para juzgar si una
+ * mesa de examen es alcanzable — no es una simulación semana a semana.
+ */
+export function estimateDailyFreeMinutes(
+  fixed: FixedActivity[],
+  flexible: FlexibleActivity[],
+): number {
+  const free = initFreeByDay();
+  applyFixedActivities(free, fixed);
+  applyFlexibleActivities(free, flexible);
+  const totalFree = WEEK_ORDER.reduce<number>(
+    (sum, day) => sum + free[day].reduce((s, iv) => s + (iv.endMin - iv.startMin), 0),
+    0,
+  );
+  return totalFree / 7;
 }
