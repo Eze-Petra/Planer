@@ -10,14 +10,19 @@ export function ExamBoards() {
   const { examBoards, subjects, fixed, flexible, addExamBoard, removeExamBoard } = usePlannerStore();
   const [name, setName] = useState("");
   const [date, setDate] = useState("");
+  const [spansDays, setSpansDays] = useState(false);
+  const [endDate, setEndDate] = useState("");
 
-  const valid = name.trim().length > 0 && date.length > 0;
+  const valid =
+    name.trim().length > 0 && date.length > 0 && (!spansDays || (endDate.length > 0 && endDate >= date));
 
   const submit = () => {
     if (!valid) return;
-    addExamBoard({ name: name.trim(), date });
+    addExamBoard({ name: name.trim(), date, endDate: spansDays ? endDate : undefined });
     setName("");
     setDate("");
+    setSpansDays(false);
+    setEndDate("");
   };
 
   const dailyFreeMin = estimateDailyFreeMinutes(fixed, flexible);
@@ -38,7 +43,7 @@ export function ExamBoards() {
               onKeyDown={(e) => e.key === "Enter" && submit()}
             />
           </Field>
-          <Field label="Fecha">
+          <Field label={spansDays ? "Desde" : "Fecha"}>
             <input
               type="date"
               className={inputClass}
@@ -46,10 +51,33 @@ export function ExamBoards() {
               onChange={(e) => setDate(e.target.value)}
             />
           </Field>
+          {spansDays && (
+            <Field label="Hasta">
+              <input
+                type="date"
+                className={inputClass}
+                value={endDate}
+                min={date || undefined}
+                onChange={(e) => setEndDate(e.target.value)}
+              />
+            </Field>
+          )}
           <PrimaryButton onClick={submit} disabled={!valid}>
             Agregar mesa
           </PrimaryButton>
         </div>
+
+        <label className="flex items-center gap-2 text-sm text-ink-soft">
+          <input
+            type="checkbox"
+            checked={spansDays}
+            onChange={(e) => {
+              setSpansDays(e.target.checked);
+              if (!e.target.checked) setEndDate("");
+            }}
+          />
+          Dura más de un día (mesa por semanas, cada materia rinde un día distinto)
+        </label>
 
         {examBoards.length === 0 ? (
           <EmptyState>
@@ -66,7 +94,14 @@ export function ExamBoards() {
               );
               const hoursNeeded =
                 finals.reduce((sum, f) => sum + f.exam.complexity * STUDY_MIN_PER_COMPLEXITY, 0) / 60;
-              const daysLeft = differenceInCalendarDays(parseISO(board.date), new Date());
+              // Si la mesa dura varios días, cada final puede rendir en una fecha distinta dentro
+              // del rango; el cuello de botella real es el más próximo de los ya anotados.
+              const earliestFinalDate = finals.reduce<string | null>(
+                (min, f) => (min === null || f.exam.date < min ? f.exam.date : min),
+                null,
+              );
+              const deadline = earliestFinalDate ?? board.date;
+              const daysLeft = differenceInCalendarDays(parseISO(deadline), new Date());
               const hoursAvailable = Math.max(daysLeft, 0) * (dailyFreeMin / 60);
               const load = hoursNeeded === 0 ? "ok" : hoursAvailable >= hoursNeeded ? "ok" : hoursAvailable >= hoursNeeded * 0.7 ? "ajustado" : "sobrecargado";
 
@@ -75,7 +110,9 @@ export function ExamBoards() {
                   <div className="flex items-center gap-3">
                     <span className="min-w-0 flex-1 truncate font-medium">{board.name}</span>
                     <span className="time-chip">
-                      {format(parseISO(board.date), "dd MMM yyyy", { locale: es })}
+                      {board.endDate
+                        ? `${format(parseISO(board.date), "dd MMM", { locale: es })} – ${format(parseISO(board.endDate), "dd MMM yyyy", { locale: es })}`
+                        : format(parseISO(board.date), "dd MMM yyyy", { locale: es })}
                     </span>
                     <span
                       className={`text-xs ${

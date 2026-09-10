@@ -72,15 +72,19 @@ export interface FlexibleActivity {
 }
 
 /**
- * Mesa de examen: fecha de turno que ofrece la facultad, compartida por
- * todas las materias (no pertenece a ninguna en particular). Un final se
- * inscribe en una mesa existente en vez de cargar una fecha suelta, así
- * varias materias que comparten turno quedan con la misma fecha.
+ * Mesa de examen: turno que ofrece la facultad, compartido por todas las
+ * materias (no pertenece a ninguna en particular). Algunas mesas son de un
+ * solo día (`date` == `endDate` o `endDate` ausente); otras se extienden por
+ * semanas, con distintas materias rindiendo distintos días dentro del rango.
+ * Un final se inscribe en una mesa existente en vez de cargar una fecha
+ * suelta, eligiendo además el día puntual si la mesa dura más de uno.
  */
 export interface ExamBoard {
   id: string;
   name: string;
   date: DateString;
+  /** Solo si la mesa dura más de un día. */
+  endDate?: DateString;
 }
 
 export type ExamKind = "parcial" | "final";

@@ -81,6 +81,7 @@ function SubjectCard(props: { subject: Subject; onRemove: () => void }) {
   const [kind, setKind] = useState<ExamKind>("parcial");
   const [date, setDate] = useState(""); // fecha manual, solo para parciales
   const [boardId, setBoardId] = useState(""); // mesa elegida, solo para finales
+  const [boardDate, setBoardDate] = useState(""); // día exacto dentro de la mesa, si dura varios días
   const [complexity, setComplexity] = useState<Complexity>(3);
 
   // Form de TP
@@ -88,15 +89,20 @@ function SubjectCard(props: { subject: Subject; onRemove: () => void }) {
   const [taskDue, setTaskDue] = useState("");
   const [taskHours, setTaskHours] = useState(4);
 
-  const examValid = kind === "final" ? boardId.length > 0 : date.length > 0;
+  const selectedBoard = examBoards.find((b) => b.id === boardId);
+
+  const examValid =
+    kind === "final" ? boardId.length > 0 && (!selectedBoard?.endDate || boardDate.length > 0) : date.length > 0;
 
   const submitExam = () => {
     if (!examValid) return;
     if (kind === "final") {
       const board = examBoards.find((b) => b.id === boardId);
       if (!board) return;
-      addExam(subject.id, { kind, date: board.date, complexity, boardId: board.id });
+      const examDate = board.endDate ? boardDate : board.date;
+      addExam(subject.id, { kind, date: examDate, complexity, boardId: board.id });
       setBoardId("");
+      setBoardDate("");
     } else {
       addExam(subject.id, { kind, date, complexity });
       setDate("");
@@ -187,19 +193,40 @@ function SubjectCard(props: { subject: Subject; onRemove: () => void }) {
                   Cargá una mesa de examen primero.
                 </span>
               ) : (
-                <select
-                  aria-label="Mesa de examen"
-                  className={inputClass}
-                  value={boardId}
-                  onChange={(e) => setBoardId(e.target.value)}
-                >
-                  <option value="">Elegir mesa…</option>
-                  {examBoards.map((b) => (
-                    <option key={b.id} value={b.id}>
-                      {b.name} — {format(parseISO(b.date), "dd MMM", { locale: es })}
-                    </option>
-                  ))}
-                </select>
+                <>
+                  <select
+                    aria-label="Mesa de examen"
+                    className={inputClass}
+                    value={boardId}
+                    onChange={(e) => {
+                      const id = e.target.value;
+                      setBoardId(id);
+                      const board = examBoards.find((b) => b.id === id);
+                      setBoardDate(board?.endDate ? board.date : "");
+                    }}
+                  >
+                    <option value="">Elegir mesa…</option>
+                    {examBoards.map((b) => (
+                      <option key={b.id} value={b.id}>
+                        {b.name} —{" "}
+                        {b.endDate
+                          ? `${format(parseISO(b.date), "dd MMM", { locale: es })}–${format(parseISO(b.endDate), "dd MMM", { locale: es })}`
+                          : format(parseISO(b.date), "dd MMM", { locale: es })}
+                      </option>
+                    ))}
+                  </select>
+                  {selectedBoard?.endDate && (
+                    <input
+                      type="date"
+                      aria-label="Día exacto dentro de la mesa"
+                      className={inputClass}
+                      value={boardDate}
+                      min={selectedBoard.date}
+                      max={selectedBoard.endDate}
+                      onChange={(e) => setBoardDate(e.target.value)}
+                    />
+                  )}
+                </>
               )
             ) : (
               <input
