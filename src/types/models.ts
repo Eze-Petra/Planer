@@ -35,15 +35,24 @@ export type DateString = string;
 export type Complexity = 1 | 2 | 3 | 4 | 5;
 
 /**
+ * Franja horaria de una actividad fija en un día puntual.
+ * Si end <= start se interpreta que cruza la medianoche (ej: dormir 23:30 → 07:30).
+ */
+export interface FixedSlot {
+  day: DayOfWeek;
+  start: TimeString;
+  end: TimeString;
+}
+
+/**
  * Actividad fija: ocurre en días y horarios exactos (gimnasio, cursada, dormir).
- * Si end < start se interpreta que cruza la medianoche (ej: dormir 23:30 → 07:30).
+ * Cada día puede tener su propio horario (ej: Redes lunes 13–17, miércoles 20–22),
+ * por eso el horario vive en `slots` y no como un start/end único para todos los días.
  */
 export interface FixedActivity {
   id: string;
   name: string;
-  days: DayOfWeek[];
-  start: TimeString;
-  end: TimeString;
+  slots: FixedSlot[];
   color: string;
 }
 

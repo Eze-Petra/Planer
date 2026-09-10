@@ -6,6 +6,7 @@ import type {
   Subject,
   Exam,
   Task,
+  DayOfWeek,
 } from "../types/models";
 import { uid } from "../lib/time";
 
@@ -134,6 +135,28 @@ export const usePlannerStore = create<PlannerState>()(
           })),
         })),
     }),
-    { name: "planner-data", version: 1 },
+    {
+      name: "planner-data",
+      version: 2,
+      // v1 → v2: FixedActivity pasó de un start/end único por actividad a
+      // `slots` (horario propio por día), para poder cargar ej. lunes y
+      // miércoles con horarios distintos en la misma actividad.
+      migrate: (persisted, version) => {
+        const state = persisted as { fixed?: Array<Record<string, unknown>> };
+        if (version < 2 && Array.isArray(state?.fixed)) {
+          state.fixed = state.fixed.map((f) => {
+            if (Array.isArray(f.slots)) return f;
+            const days = Array.isArray(f.days) ? (f.days as DayOfWeek[]) : [];
+            return {
+              id: f.id,
+              name: f.name,
+              color: f.color,
+              slots: days.map((day) => ({ day, start: f.start, end: f.end })),
+            };
+          });
+        }
+        return state as unknown as PlannerState;
+      },
+    },
   ),
 );
