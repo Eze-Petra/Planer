@@ -8,7 +8,7 @@ import type {
   DayOfWeek,
   TimeString,
 } from "../../types/models";
-import { WEEK_ORDER } from "../../types/models";
+import { WEEK_ORDER, ROUTINE_COLOR } from "../../types/models";
 import { toMinutes, toTime, uid } from "../../lib/time";
 
 /**
@@ -40,7 +40,6 @@ export const STUDY_MIN_PER_COMPLEXITY = 120; // minutos de estudio por punto de 
 const MAX_SESSION_MIN = 90; // sesión de estudio más larga que arma por día para un mismo ítem
 const MIN_SESSION_MIN = 20; // hueco más chico que vale la pena usar
 const FALLBACK_TASK_DAYS_LEFT = 21; // "días restantes" asumidos para un TP sin fecha de entrega
-const DEFAULT_ESSENTIAL_COLOR = "#0E7490";
 /**
  * El scheduler no ubica rutina ni estudio antes de esta hora salvo que ya
  * esté ocupada por una actividad fija — sin esto, un día sin nada cargado
@@ -169,7 +168,7 @@ function applyFlexibleActivities(
           end: toTime(busy.endMin),
           kind: "flexible",
           label: activity.name,
-          color: DEFAULT_ESSENTIAL_COLOR,
+          color: ROUTINE_COLOR,
         });
       }
     }

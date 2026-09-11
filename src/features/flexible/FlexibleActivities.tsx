@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { usePlannerStore } from "../../store/usePlannerStore";
 import { durationMin, formatDuration } from "../../lib/time";
+import { ROUTINE_COLOR } from "../../types/models";
 import {
   Card, Field, PrimaryButton, IconDelete, EmptyState, inputClass,
 } from "../../components/ui";
@@ -107,6 +108,10 @@ export function FlexibleActivities() {
           <ul className="flex flex-col divide-y divide-line">
             {flexible.map((a) => (
               <li key={a.id} className="flex items-center gap-3 py-2.5">
+                <span
+                  className="h-3 w-3 shrink-0 rounded-full"
+                  style={{ background: ROUTINE_COLOR }}
+                />
                 <span className="min-w-0 flex-1 truncate font-medium">{a.name}</span>
                 {a.timesPerDay > 1 && (
                   <span className="text-xs text-ink-soft">× {a.timesPerDay}/día</span>

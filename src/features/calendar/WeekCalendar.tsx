@@ -15,10 +15,14 @@ const END_HOUR = 24;
 const HOUR_HEIGHT_PX = 48;
 const GRID_HEIGHT_PX = (END_HOUR - START_HOUR) * HOUR_HEIGHT_PX;
 
+// Estilo de borde por tipo — el color del bloque es el de la materia/actividad
+// y puede repetirse entre bloques, así que el borde es lo único que garantiza
+// distinguir el tipo aunque los colores coincidan. Tres patrones bien
+// distintos entre sí (antes "fija" y "estudio" eran ambos sólidos).
 const KIND_STYLE: Record<BlockKind, { border: string; opacity: number }> = {
   fixed: { border: "solid", opacity: 1 },
-  flexible: { border: "dashed", opacity: 0.85 },
-  study: { border: "solid", opacity: 0.9 },
+  flexible: { border: "dashed", opacity: 1 },
+  study: { border: "dotted", opacity: 1 },
 };
 
 export function WeekCalendar() {
@@ -109,7 +113,7 @@ function DayColumn(props: { day: DayOfWeek; blocks: ScheduledBlock[]; hours: num
               height,
               background: block.color,
               opacity: style.opacity,
-              border: `1px ${style.border} rgba(255,255,255,0.6)`,
+              border: `3px ${style.border} rgba(255,255,255,0.9)`,
             }}
           >
             <span className="line-clamp-2 font-medium">{block.label}</span>
@@ -132,7 +136,7 @@ function Legend() {
       {LEGEND_ITEMS.map((item) => (
         <span key={item.kind} className="flex items-center gap-1.5" title={item.hint}>
           <span
-            className="h-2.5 w-3.5 rounded-sm border-2 border-ink-soft/70 bg-ink-soft/15"
+            className="h-2.5 w-3.5 rounded-sm border-[3px] border-ink-soft/70 bg-ink-soft/15"
             style={{ borderStyle: KIND_STYLE[item.kind].border }}
           />
           <span className="font-medium text-ink">{item.label}</span>

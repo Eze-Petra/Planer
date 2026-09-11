@@ -117,14 +117,19 @@ export interface Subject {
   tasks: Task[];
 }
 
-/** Paleta para materias y actividades — derivada de los tokens del tema. */
+/**
+ * Color fijo y exclusivo de la rutina diaria (no aparece en PALETTE): así
+ * nunca coincide con el de una actividad fija o materia elegido a mano.
+ */
+export const ROUTINE_COLOR = "#0E7490";
+
+/** Paleta para materias y actividades fijas — derivada de los tokens del tema. */
 export const PALETTE = [
   "#2B4ACB", // azul tinta
   "#0E7C66", // verde pizarra
   "#B3261E", // rojo corrección
   "#B45309", // ámbar
   "#6D28D9", // violeta
-  "#0E7490", // cian profundo
   "#9D174D", // magenta
   "#4D7C0F", // oliva
 ] as const;
