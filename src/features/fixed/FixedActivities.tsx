@@ -192,16 +192,26 @@ export function FixedActivities() {
             {fixed.map((a) => (
               <li
                 key={a.id}
-                className={`flex items-center gap-3 py-2.5 ${
+                className={`flex flex-col gap-1.5 py-2.5 ${
                   editingId === a.id ? "-mx-2 rounded-lg bg-primary-soft px-2" : ""
                 }`}
               >
-                <span
-                  className="h-3 w-3 shrink-0 rounded-full"
-                  style={{ background: a.color }}
-                />
-                <span className="min-w-0 flex-1 truncate font-medium">{a.name}</span>
-                <div className="flex flex-wrap justify-end gap-1.5">
+                <div className="flex items-center gap-3">
+                  <span
+                    className="h-3 w-3 shrink-0 rounded-full"
+                    style={{ background: a.color }}
+                  />
+                  <span className="min-w-0 flex-1 truncate font-medium">{a.name}</span>
+                  <IconEdit onClick={() => startEdit(a)} label={`Editar ${a.name}`} />
+                  <IconDelete
+                    onClick={() => {
+                      if (editingId === a.id) resetForm();
+                      removeFixed(a.id);
+                    }}
+                    label={`Eliminar ${a.name}`}
+                  />
+                </div>
+                <div className="flex flex-wrap gap-1.5 pl-6">
                   {WEEK_ORDER.flatMap((d) =>
                     a.slots
                       .filter((s) => s.day === d)
@@ -212,14 +222,6 @@ export function FixedActivities() {
                       )),
                   )}
                 </div>
-                <IconEdit onClick={() => startEdit(a)} label={`Editar ${a.name}`} />
-                <IconDelete
-                  onClick={() => {
-                    if (editingId === a.id) resetForm();
-                    removeFixed(a.id);
-                  }}
-                  label={`Eliminar ${a.name}`}
-                />
               </li>
             ))}
           </ul>
