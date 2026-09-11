@@ -73,6 +73,11 @@ function daysLeft(date: string): number {
   return differenceInCalendarDays(parseISO(date), new Date());
 }
 
+function clampComplexity(value: number): Complexity {
+  if (Number.isNaN(value)) return 1;
+  return Math.min(5, Math.max(1, Math.round(value))) as Complexity;
+}
+
 function SubjectCard(props: { subject: Subject; onRemove: () => void }) {
   const { subject } = props;
   const { examBoards, addExam, removeExam, addTask, toggleTask, removeTask } = usePlannerStore();
@@ -242,9 +247,15 @@ function SubjectCard(props: { subject: Subject; onRemove: () => void }) {
               <input
                 type="range" min={1} max={5}
                 value={complexity}
-                onChange={(e) => setComplexity(Number(e.target.value) as Complexity)}
+                onChange={(e) => setComplexity(clampComplexity(Number(e.target.value)))}
               />
-              <span className="time-chip">{complexity}</span>
+              <input
+                type="number" min={1} max={5}
+                value={complexity}
+                onChange={(e) => setComplexity(clampComplexity(Number(e.target.value)))}
+                aria-label="Complejidad (1 a 5)"
+                className="time-chip w-12 text-center"
+              />
             </label>
             <PrimaryButton onClick={submitExam} disabled={!examValid}>
               Agregar
