@@ -233,22 +233,39 @@ function buildWorkItems(subjects: Subject[], weekDays: Date[], today: Date): Wor
   return items.sort((a, b) => b.priority - a.priority);
 }
 
+/**
+ * Reparte el estudio día por día: cada día, el tiempo libre se divide entre
+ * los ítems elegibles ese día en proporción a su prioridad (no se le da todo
+ * el hueco más grande al de mayor prioridad antes de mirar a los demás,
+ * como pasaba antes). Cada ítem sigue topeado a MAX_SESSION_MIN por día.
+ *
+ * `items` ya viene ordenado por prioridad desc (buildWorkItems) y ese orden
+ * se preserva al filtrar, así que no hace falta volver a ordenar acá.
+ */
 function applyStudyItems(
   free: FreeByDay,
   items: WorkItem[],
   firstSchedulableDayIndex: number,
 ): ScheduledBlock[] {
   const blocks: ScheduledBlock[] = [];
+  const lastDayIndex = WEEK_ORDER.length - 1;
 
-  for (const item of items) {
-    for (
-      let dayIndex = firstSchedulableDayIndex;
-      dayIndex <= item.dueDayIndex && item.minutesRemaining > 0;
-      dayIndex++
-    ) {
-      const day = WEEK_ORDER[dayIndex];
-      const sessionMinutes = Math.min(item.minutesRemaining, MAX_SESSION_MIN);
-      // Usa el hueco más grande disponible ese día, hasta el tope de la sesión.
+  for (let dayIndex = firstSchedulableDayIndex; dayIndex <= lastDayIndex; dayIndex++) {
+    const day = WEEK_ORDER[dayIndex];
+    const eligible = items.filter((it) => dayIndex <= it.dueDayIndex && it.minutesRemaining > 0);
+    if (eligible.length === 0) continue;
+
+    const dayTotalFree = free[day].reduce((sum, iv) => sum + (iv.endMin - iv.startMin), 0);
+    if (dayTotalFree < MIN_SESSION_MIN) continue;
+
+    const totalWeight = eligible.reduce((sum, it) => sum + it.priority, 0);
+
+    for (const item of eligible) {
+      const fairShare = Math.round(dayTotalFree * (item.priority / totalWeight));
+      const target = Math.min(item.minutesRemaining, MAX_SESSION_MIN, fairShare);
+      if (target < MIN_SESSION_MIN) continue; // su parte proporcional no alcanza para una sesión útil hoy
+
+      // Usa el hueco más grande disponible ese día, hasta el tope calculado.
       const biggestGap = free[day].reduce<Interval | null>(
         (best, iv) =>
           !best || iv.endMin - iv.startMin > best.endMin - best.startMin ? iv : best,
@@ -256,7 +273,7 @@ function applyStudyItems(
       );
       if (!biggestGap || biggestGap.endMin - biggestGap.startMin < MIN_SESSION_MIN) continue;
 
-      const allocated = Math.min(sessionMinutes, biggestGap.endMin - biggestGap.startMin);
+      const allocated = Math.min(target, biggestGap.endMin - biggestGap.startMin);
       const busy = { startMin: biggestGap.startMin, endMin: biggestGap.startMin + allocated };
       free[day] = subtractBusy(free[day], busy);
       item.minutesRemaining -= allocated;

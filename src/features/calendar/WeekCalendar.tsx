@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { format } from "date-fns";
+import { format, addDays, isSameDay, isBefore, startOfDay } from "date-fns";
 import { es } from "date-fns/locale";
 import { usePlannerStore } from "../../store/usePlannerStore";
 import { DAY_LABELS, WEEK_ORDER, type DayOfWeek } from "../../types/models";
@@ -34,6 +34,7 @@ export function WeekCalendar() {
   );
 
   const hours = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
+  const today = startOfDay(new Date());
 
   return (
     <div className="rounded-xl border border-line bg-paper shadow-[0_1px_2px_rgba(28,34,48,0.06)]">
@@ -51,11 +52,28 @@ export function WeekCalendar() {
       <div className="overflow-x-auto px-5 py-4">
         <div className="grid min-w-[720px] grid-cols-[3rem_repeat(7,1fr)]">
           <div />
-          {WEEK_ORDER.map((d) => (
-            <div key={d} className="pb-2 text-center text-xs font-medium uppercase tracking-wide text-ink-soft">
-              {DAY_LABELS[d]}
-            </div>
-          ))}
+          {WEEK_ORDER.map((d, i) => {
+            const dayDate = addDays(schedule.weekStart, i);
+            const isToday = isSameDay(dayDate, today);
+            const isPast = isBefore(dayDate, today) && !isToday;
+            return (
+              <div
+                key={d}
+                className={`pb-2 text-center text-xs font-medium uppercase tracking-wide ${
+                  isToday ? "text-primary" : "text-ink-soft"
+                } ${isPast ? "opacity-45" : ""}`}
+              >
+                {isToday ? (
+                  <span className="rounded-md bg-primary-soft px-2 py-0.5">{DAY_LABELS[d]} · hoy</span>
+                ) : (
+                  <>
+                    {DAY_LABELS[d]}
+                    {isPast && <span className="block normal-case tracking-normal">ya pasó</span>}
+                  </>
+                )}
+              </div>
+            );
+          })}
 
           <div className="relative" style={{ height: GRID_HEIGHT_PX }}>
             {hours.map((h) => (
@@ -69,22 +87,29 @@ export function WeekCalendar() {
             ))}
           </div>
 
-          {WEEK_ORDER.map((day) => (
-            <DayColumn key={day} day={day} blocks={schedule.blocks} hours={hours} />
-          ))}
+          {WEEK_ORDER.map((day, i) => {
+            const dayDate = addDays(schedule.weekStart, i);
+            const isPast = isBefore(dayDate, today) && !isSameDay(dayDate, today);
+            return (
+              <DayColumn key={day} day={day} blocks={schedule.blocks} hours={hours} isPast={isPast} />
+            );
+          })}
         </div>
       </div>
     </div>
   );
 }
 
-function DayColumn(props: { day: DayOfWeek; blocks: ScheduledBlock[]; hours: number[] }) {
+function DayColumn(props: { day: DayOfWeek; blocks: ScheduledBlock[]; hours: number[]; isPast: boolean }) {
   const dayBlocks = props.blocks.filter((b) => b.day === props.day);
   const gridStartMin = START_HOUR * 60;
   const gridEndMin = END_HOUR * 60;
 
   return (
-    <div className="relative border-l border-line" style={{ height: GRID_HEIGHT_PX }}>
+    <div
+      className="relative border-l border-line"
+      style={{ height: GRID_HEIGHT_PX, opacity: props.isPast ? 0.45 : 1 }}
+    >
       {props.hours.map((h) => (
         <div
           key={h}
