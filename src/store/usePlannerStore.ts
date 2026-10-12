@@ -50,7 +50,20 @@ interface PlannerState {
   addTask: (subjectId: string, task: Omit<Task, "id" | "done">) => void;
   toggleTask: (subjectId: string, taskId: string) => void;
   removeTask: (subjectId: string, taskId: string) => void;
+
+  /**
+   * Reemplaza las cuatro colecciones de una sola vez. La usa el sync remoto
+   * (`src/lib/sync.ts`) para hidratar el store con lo que vino de Supabase,
+   * sin pasar por las acciones una por una.
+   */
+  hydrate: (data: SyncableData) => void;
 }
+
+/** Subconjunto del estado que viaja a Supabase (todo menos las acciones). */
+export type SyncableData = Pick<
+  PlannerState,
+  "fixed" | "flexible" | "subjects" | "examBoards"
+>;
 
 const patchSubject = (
   subjects: Subject[],
@@ -157,6 +170,8 @@ export const usePlannerStore = create<PlannerState>()(
             tasks: s.tasks.filter((t) => t.id !== taskId),
           })),
         })),
+
+      hydrate: (data) => set(data),
     }),
     {
       name: "planner-data",
