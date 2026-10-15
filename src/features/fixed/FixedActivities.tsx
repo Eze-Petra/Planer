@@ -119,7 +119,7 @@ export function FixedActivities() {
                     className={`rounded-lg border px-3 py-1.5 text-sm transition-colors ${
                       slotDays.includes(d)
                         ? "border-primary bg-primary-soft font-medium text-primary"
-                        : "border-line bg-white text-ink-soft hover:border-ink-soft"
+                        : "border-line bg-field text-ink-soft hover:border-ink-soft"
                     }`}
                   >
                     {DAY_LABELS[d].slice(0, 3)}

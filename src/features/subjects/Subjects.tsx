@@ -127,7 +127,7 @@ function SubjectCard(props: { subject: Subject; onRemove: () => void }) {
 
   return (
     <article
-      className="rounded-lg border border-line bg-white"
+      className="rounded-lg border border-line bg-field"
       style={{ borderLeft: `4px solid ${subject.color}` }}
     >
       <header className="flex items-center justify-between gap-3 px-4 py-3">

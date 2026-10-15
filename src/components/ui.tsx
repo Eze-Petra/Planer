@@ -5,7 +5,7 @@ import { PALETTE } from "../types/models";
 
 export function Card(props: { title: string; subtitle?: string; children: ReactNode }) {
   return (
-    <section className="rounded-xl border border-line bg-paper shadow-[0_1px_2px_rgba(28,34,48,0.06)]">
+    <section className="card-light rounded-xl border border-line bg-surface">
       <header className="border-b border-line px-5 py-4">
         <h2 className="text-lg font-semibold">{props.title}</h2>
         {props.subtitle && (
@@ -29,7 +29,7 @@ export function Field(props: { label: string; children: ReactNode; className?: s
 }
 
 export const inputClass =
-  "rounded-lg border border-line bg-white px-3 py-2 text-sm text-ink " +
+  "rounded-lg border border-line bg-field px-3 py-2 text-sm text-ink " +
   "placeholder:text-ink-soft/60";
 
 export function PrimaryButton(props: {
@@ -43,7 +43,7 @@ export function PrimaryButton(props: {
       type={props.type ?? "button"}
       onClick={props.onClick}
       disabled={props.disabled}
-      className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white
+      className="rounded-lg bg-button px-4 py-2 text-sm font-medium text-on-button
                  transition-opacity hover:opacity-90 disabled:opacity-40"
     >
       {props.children}
@@ -96,7 +96,7 @@ export function ColorPicker(props: { value: string; onChange: (c: string) => voi
           className="h-6 w-6 rounded-full transition-transform hover:scale-110"
           style={{
             background: c,
-            boxShadow: props.value === c ? `0 0 0 2px var(--color-paper), 0 0 0 4px ${c}` : "none",
+            boxShadow: props.value === c ? `0 0 0 2px var(--color-surface), 0 0 0 4px ${c}` : "none",
           }}
         />
       ))}

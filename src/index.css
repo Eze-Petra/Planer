@@ -1,46 +1,64 @@
 @import "tailwindcss";
 
 /*
-  Identidad visual: "agenda de papel técnico".
-  Fondo papel con renglones tenues, tinta azul como primario, ámbar para
-  fechas límite. Las horas siempre en monospace tabular (JetBrains Mono):
-  ese es el sello de la app — los números de tiempo se leen como instrumento,
-  no como texto.
+  Identidad visual: "fintech editorial cálida".
+  Fondo marrón oscuro, tarjetas en marrón más claro, crema como tinta y
+  primario, coral para fechas límite. Tipografía Outfit (geométrica, liviana).
+  Las horas siguen en monospace tabular (JetBrains Mono): los números de
+  tiempo se leen como instrumento, no como texto.
 */
 
 @theme {
-  --color-paper: #fbfaf6;
-  --color-paper-2: #f3f1ea;
-  --color-line: #e3e0d5;
-  --color-ink: #1c2230;
-  --color-ink-soft: #5b6172;
-  --color-primary: #2b4acb;
-  --color-primary-soft: #e8ecfb;
-  --color-accent: #b45309;
-  --color-accent-soft: #fdf0e0;
-  --color-danger: #b3261e;
+  --color-paper: #54302a;
+  --color-paper-2: #623a33;
+  --color-surface: #6a4038;
+  --color-field: #46241f;
+  --color-button: #8f5a4d;
+  --color-on-button: #efe9d8;
+  --color-line: #7d544b;
+  --color-ink: #efe9d8;
+  --color-ink-soft: #cdb5a9;
+  --color-primary: #e8e4d3;
+  --color-primary-soft: #6b3a32;
+  --color-accent: #f2745d;
+  --color-accent-soft: #64301f;
+  --color-danger: #ff8274;
 
-  --font-display: "Space Grotesk", system-ui, sans-serif;
-  --font-body: "Inter", system-ui, sans-serif;
+  --font-display: "Outfit", system-ui, sans-serif;
+  --font-body: "Outfit", system-ui, sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, monospace;
 }
 
 html {
+  color-scheme: dark;
   background: var(--color-paper);
   color: var(--color-ink);
   font-family: var(--font-body);
 }
 
-/* Renglones de agenda: líneas horizontales muy tenues en el fondo */
 body {
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent 31px,
-    color-mix(in srgb, var(--color-line) 55%, transparent) 31px,
-    color-mix(in srgb, var(--color-line) 55%, transparent) 32px
-  );
   min-height: 100vh;
+}
+
+/* Tarjetas claras (crema) sobre el fondo oscuro: reasignan los tokens, así
+   todo lo que hay adentro (inputs, chips, botones) se adapta solo. */
+.card-light {
+  color-scheme: light;
+  color: var(--color-ink);
+  --color-surface: #e8e4d3;
+  --color-paper: #e8e4d3;
+  --color-paper-2: #dcd7c3;
+  --color-field: #d8d3be;
+  --color-line: #c9c3aa;
+  --color-ink: #3a1713;
+  --color-ink-soft: #7a615a;
+  --color-primary: #7a2e35;
+  --color-primary-soft: #e2cfc2;
+  --color-accent: #c8452f;
+  --color-accent-soft: #f1d3c4;
+  --color-danger: #b3261e;
+  --color-button: #3a1713;
+  --color-on-button: #efe9d8;
 }
 
 h1, h2, h3 {
