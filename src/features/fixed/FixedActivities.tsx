@@ -80,6 +80,8 @@ export function FixedActivities() {
   return (
     <Card
       title="Actividades fijas"
+      badge={fixed.length}
+      collapsible
       subtitle="Bloques con día y horario exacto: cursada, gimnasio, dormir."
     >
       <div className="flex flex-col gap-4">

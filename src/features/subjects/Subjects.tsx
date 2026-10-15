@@ -22,6 +22,8 @@ export function Subjects() {
   return (
     <Card
       title="Materias"
+      badge={subjects.length}
+      collapsible
       subtitle="Cada materia agrupa sus parciales, finales y TPs. La complejidad (1–5) pondera cuánto estudio asigna el planificador."
     >
       <div className="flex flex-col gap-4">

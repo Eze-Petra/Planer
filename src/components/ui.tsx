@@ -1,19 +1,134 @@
-import type { ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
 import { PALETTE } from "../types/models";
 
 /** Primitivas mínimas compartidas. Si crecen, se separan en archivos. */
 
-export function Card(props: { title: string; subtitle?: string; children: ReactNode }) {
+/** Cómo se muestran las secciones de la pestaña Datos. */
+export type SectionMode = "open" | "accordion" | "modal";
+export const SectionModeContext = createContext<SectionMode>("open");
+
+function Chevron(props: { open: boolean }) {
   return (
-    <section className="card-light rounded-xl border border-line bg-surface">
-      <header className="border-b border-line px-5 py-4">
+    <svg
+      width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden
+      className={`shrink-0 transition-transform ${props.open ? "rotate-180" : ""}`}
+    >
+      <path d="M6 9l6 6 6-6" />
+    </svg>
+  );
+}
+
+function CardTitle(props: { title: string; subtitle?: string; badge?: number }) {
+  return (
+    <div className="min-w-0 flex-1">
+      <div className="flex items-center gap-2">
         <h2 className="text-lg font-semibold">{props.title}</h2>
-        {props.subtitle && (
-          <p className="mt-0.5 text-sm text-ink-soft">{props.subtitle}</p>
+        {props.badge !== undefined && (
+          <span className="rounded-full bg-primary-soft px-2 py-0.5 text-xs font-medium text-primary">
+            {props.badge}
+          </span>
         )}
-      </header>
-      <div className="px-5 py-4">{props.children}</div>
-    </section>
+      </div>
+      {props.subtitle && <p className="mt-0.5 text-sm text-ink-soft">{props.subtitle}</p>}
+    </div>
+  );
+}
+
+export function Card(props: {
+  title: string;
+  subtitle?: string;
+  /** Cantidad de ítems cargados, se muestra al lado del título. */
+  badge?: number;
+  /** Solo las secciones con `collapsible` respetan el modo desplegable / pop up. */
+  collapsible?: boolean;
+  children: ReactNode;
+}) {
+  const mode = useContext(SectionModeContext);
+  const [open, setOpen] = useState(false);
+  const variant = props.collapsible ? mode : "open";
+
+  useEffect(() => {
+    if (variant !== "modal" || !open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [variant, open]);
+
+  if (variant === "open") {
+    return (
+      <section className="card-light rounded-xl border border-line bg-surface">
+        <header className="border-b border-line px-5 py-4">
+          <CardTitle title={props.title} subtitle={props.subtitle} badge={props.badge} />
+        </header>
+        <div className="px-5 py-4">{props.children}</div>
+      </section>
+    );
+  }
+
+  if (variant === "accordion") {
+    return (
+      <section className="card-light rounded-xl border border-line bg-surface">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-expanded={open}
+          className={`flex w-full items-center gap-3 px-5 py-4 text-left ${
+            open ? "border-b border-line" : ""
+          }`}
+        >
+          <CardTitle title={props.title} subtitle={open ? props.subtitle : undefined} badge={props.badge} />
+          <Chevron open={open} />
+        </button>
+        {/* Se mantiene montado (solo oculto) para no perder lo que se está tipeando */}
+        <div hidden={!open} className="px-5 py-4">{props.children}</div>
+      </section>
+    );
+  }
+
+  return (
+    <>
+      <section className="card-light rounded-xl border border-line bg-surface">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="flex w-full items-center gap-3 px-5 py-4 text-left"
+        >
+          <CardTitle title={props.title} subtitle={props.subtitle} badge={props.badge} />
+          <span className="shrink-0 rounded-full bg-button px-4 py-1.5 text-sm font-medium text-on-button">
+            Abrir
+          </span>
+        </button>
+      </section>
+      {open && (
+        <div
+          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 px-4 py-8"
+          onMouseDown={(e) => e.target === e.currentTarget && setOpen(false)}
+        >
+          <section
+            role="dialog"
+            aria-modal="true"
+            aria-label={props.title}
+            className="card-light w-full max-w-3xl rounded-xl border border-line bg-surface shadow-2xl"
+          >
+            <header className="flex items-start gap-3 border-b border-line px-5 py-4">
+              <CardTitle title={props.title} subtitle={props.subtitle} badge={props.badge} />
+              <button
+                type="button"
+                onClick={() => setOpen(false)}
+                aria-label="Cerrar"
+                className="rounded-full p-1.5 text-ink-soft transition-colors hover:bg-field hover:text-ink"
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
+                  <path d="M6 6l12 12M18 6L6 18" />
+                </svg>
+              </button>
+            </header>
+            <div className="px-5 py-4">{props.children}</div>
+          </section>
+        </div>
+      )}
+    </>
   );
 }
 

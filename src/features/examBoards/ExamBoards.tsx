@@ -30,6 +30,8 @@ export function ExamBoards() {
   return (
     <Card
       title="Mesas de examen"
+      badge={examBoards.length}
+      collapsible
       subtitle="Turnos que ofrece la facultad. Al cargar un final de una materia, elegís en cuál se inscribe."
     >
       <div className="flex flex-col gap-4">
