@@ -1,11 +1,7 @@
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { useState, type ReactNode } from "react";
 import { PALETTE } from "../types/models";
 
 /** Primitivas mínimas compartidas. Si crecen, se separan en archivos. */
-
-/** Cómo se muestran las secciones de la pestaña Datos. */
-export type SectionMode = "open" | "accordion" | "modal";
-export const SectionModeContext = createContext<SectionMode>("open");
 
 function Chevron(props: { open: boolean }) {
   return (
@@ -40,22 +36,13 @@ export function Card(props: {
   subtitle?: string;
   /** Cantidad de ítems cargados, se muestra al lado del título. */
   badge?: number;
-  /** Solo las secciones con `collapsible` respetan el modo desplegable / pop up. */
+  /** Si es true, la tarjeta se muestra como desplegable. */
   collapsible?: boolean;
   children: ReactNode;
 }) {
-  const mode = useContext(SectionModeContext);
   const [open, setOpen] = useState(false);
-  const variant = props.collapsible ? mode : "open";
 
-  useEffect(() => {
-    if (variant !== "modal" || !open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [variant, open]);
-
-  if (variant === "open") {
+  if (!props.collapsible) {
     return (
       <section className="card-light rounded-xl border border-line bg-surface">
         <header className="border-b border-line px-5 py-4">
@@ -66,69 +53,22 @@ export function Card(props: {
     );
   }
 
-  if (variant === "accordion") {
-    return (
-      <section className="card-light rounded-xl border border-line bg-surface">
-        <button
-          type="button"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-          className={`flex w-full items-center gap-3 px-5 py-4 text-left ${
-            open ? "border-b border-line" : ""
-          }`}
-        >
-          <CardTitle title={props.title} subtitle={open ? props.subtitle : undefined} badge={props.badge} />
-          <Chevron open={open} />
-        </button>
-        {/* Se mantiene montado (solo oculto) para no perder lo que se está tipeando */}
-        <div hidden={!open} className="px-5 py-4">{props.children}</div>
-      </section>
-    );
-  }
-
   return (
-    <>
-      <section className="card-light rounded-xl border border-line bg-surface">
-        <button
-          type="button"
-          onClick={() => setOpen(true)}
-          className="flex w-full items-center gap-3 px-5 py-4 text-left"
-        >
-          <CardTitle title={props.title} subtitle={props.subtitle} badge={props.badge} />
-          <span className="shrink-0 rounded-full bg-button px-4 py-1.5 text-sm font-medium text-on-button">
-            Abrir
-          </span>
-        </button>
-      </section>
-      {open && (
-        <div
-          className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-black/60 px-4 py-8"
-          onMouseDown={(e) => e.target === e.currentTarget && setOpen(false)}
-        >
-          <section
-            role="dialog"
-            aria-modal="true"
-            aria-label={props.title}
-            className="card-light w-full max-w-3xl rounded-xl border border-line bg-surface shadow-2xl"
-          >
-            <header className="flex items-start gap-3 border-b border-line px-5 py-4">
-              <CardTitle title={props.title} subtitle={props.subtitle} badge={props.badge} />
-              <button
-                type="button"
-                onClick={() => setOpen(false)}
-                aria-label="Cerrar"
-                className="rounded-full p-1.5 text-ink-soft transition-colors hover:bg-field hover:text-ink"
-              >
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden>
-                  <path d="M6 6l12 12M18 6L6 18" />
-                </svg>
-              </button>
-            </header>
-            <div className="px-5 py-4">{props.children}</div>
-          </section>
-        </div>
-      )}
-    </>
+    <section className="card-light rounded-xl border border-line bg-surface">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className={`flex w-full items-center gap-3 px-5 py-4 text-left ${
+          open ? "border-b border-line" : ""
+        }`}
+      >
+        <CardTitle title={props.title} subtitle={open ? props.subtitle : undefined} badge={props.badge} />
+        <Chevron open={open} />
+      </button>
+      {/* Se mantiene montado (solo oculto) para no perder lo que se está tipeando */}
+      <div hidden={!open} className="px-5 py-4">{props.children}</div>
+    </section>
   );
 }
 
