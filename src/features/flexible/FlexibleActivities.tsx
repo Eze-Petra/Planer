@@ -35,6 +35,8 @@ export function FlexibleActivities() {
   return (
     <Card
       title="Rutina diaria"
+      badge={flexible.length}
+      collapsible
       subtitle="Sin horario fijo: el planificador la ubica cada día (comer, cocinar, descansar)."
     >
       <div className="flex flex-col gap-4">

@@ -37,7 +37,7 @@ export function WeekCalendar() {
   const today = startOfDay(new Date());
 
   return (
-    <div className="rounded-xl border border-line bg-paper shadow-[0_1px_2px_rgba(28,34,48,0.06)]">
+    <div className="card-light rounded-xl border border-line bg-surface">
       <header className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-5 py-4">
         <div>
           <h2 className="text-lg font-semibold">Semana</h2>

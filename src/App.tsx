@@ -29,7 +29,7 @@ export default function App() {
               onClick={() => setTab(t)}
               aria-current={tab === t ? "page" : undefined}
               className={`rounded-md px-4 py-1.5 text-sm capitalize transition-colors ${
-                tab === t ? "bg-white font-medium shadow-sm" : "text-ink-soft"
+                tab === t ? "bg-primary font-medium text-paper" : "text-ink-soft"
               }`}
             >
               {t}
