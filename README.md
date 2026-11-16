@@ -4,9 +4,8 @@ App web (React + TypeScript + Vite) para cargar actividades fijas, rutina
 diaria, materias con exámenes/TPs y mesas de examen, y generar un horario
 semanal automático que reparte el estudio según prioridad.
 
-Desplegada en Vercel: https://vercel.com (ver sección **Despliegue y sincronización**
-más abajo — por ahora cada navegador guarda sus propios datos en `localStorage`,
-está en curso la migración a sincronización en la nube).
+Desplegada en Vercel, con login y sincronización entre dispositivos vía
+Supabase (ver sección **Despliegue y sincronización** más abajo).
 
 ## Cómo correrla
 
@@ -24,9 +23,9 @@ Si ya está configurada la sincronización con Supabase (ver abajo), copiar
 src/
 ├── types/models.ts        # Modelos de dominio (única fuente de verdad de tipos)
 ├── lib/time.ts            # Utilidades de tiempo (HH:mm ↔ minutos) e IDs
-├── store/usePlannerStore.ts  # Estado global (Zustand) + persistencia localStorage (y, a futuro, sync remoto)
-├── lib/supabase.ts        # Cliente de Supabase (auth + DB) — en construcción
-├── lib/sync.ts            # Lectura/escritura del estado en Supabase (tabla planner_state)
+├── store/usePlannerStore.ts  # Estado global (Zustand) + persistencia localStorage
+├── lib/supabase.ts        # Cliente de Supabase (auth + DB)
+├── lib/sync.ts            # Lectura/escritura del estado en Supabase (tabla planner_state) y metadatos de sync
 ├── components/ui.tsx      # Primitivas visuales compartidas (Card con modo desplegable y badge de cantidad)
 ├── features/
 │   ├── auth/              # Login (email + contraseña, con ver/ocultar), barra de usuario y sync remoto
@@ -42,13 +41,9 @@ src/
 
 ## Despliegue y sincronización entre dispositivos
 
-Hoy la app es 100% client-side: no hay backend ni base de datos, todo vive en
-el `localStorage` del navegador donde se usa. Eso significa que el deploy en
-Vercel ya funciona sin prender nada en local, pero los datos **no viajan**
-entre dispositivos (PC, celular, etc.) porque cada navegador tiene su propia copia.
-
-Para resolver eso se está integrando [Supabase](https://supabase.com) (Postgres
-+ Auth + cliente JS, free tier), con esta arquitectura mínima:
+Los datos se sincronizan entre dispositivos con [Supabase](https://supabase.com)
+(Postgres + Auth + cliente JS, free tier). Sin las variables de entorno, la app
+funciona igual pero solo con `localStorage`. Arquitectura:
 
 - **Auth**: login con email + contraseña, para que el deploy público no quede
   abierto a cualquiera y para poder identificar a qué usuario le corresponden
@@ -56,16 +51,22 @@ Para resolver eso se está integrando [Supabase](https://supabase.com) (Postgres
 - **DB**: una sola tabla `planner_state (user_id, data jsonb, updated_at)` —
   el store de Zustand ya es un único blob JSON, así que no hace falta modelar
   tablas relacionales.
-- **Sync**: al loguearse se hidrata el store desde Supabase; cada cambio se
-  sube con debounce. `localStorage` queda como caché offline, no como única
-  fuente de verdad.
+- **Sync** (`src/features/auth/useRemoteSync.ts`): cada cambio se marca como
+  "sin subir" en `localStorage` y se sube con debounce. Mientras haya algo
+  sin subir (pestaña cerrada antes de tiempo, sin internet, Supabase en
+  pausa), lo local gana y se reintenta solo. Si no hay nada pendiente, manda
+  la nube: se baja al abrir, al volver a la pestaña y al recuperar conexión.
+  Cada subida verifica `updated_at`; si otro dispositivo escribió en el medio,
+  se pregunta con qué versión quedarse en vez de pisarla. Al salir se sube lo
+  pendiente y se vacía el navegador; los datos de otra cuenta nunca se suben.
+- **Keep-alive**: el plan gratis de Supabase pausa el proyecto tras ~1 semana
+  sin uso. Un Vercel Cron diario (`vercel.json` → `api/keepalive.js`) hace una
+  consulta a la base para evitarlo.
 - **Variables de entorno** (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`):
   son públicas (van en el bundle del front), la seguridad real la da Row Level
   Security en Supabase. Se configuran en `.env.local` para desarrollo y en el
-  dashboard de Vercel (Production + Preview) para el deploy.
-
-Este trabajo se está haciendo en la rama `feature` y se mergea a
-`main` recién cuando esté probado con un Preview Deployment de Vercel.
+  dashboard de Vercel (Production + Preview) para el deploy. El keep-alive
+  también las lee en runtime.
 
 ## Roadmap
 
@@ -81,6 +82,7 @@ Este trabajo se está haciendo en la rama `feature` y se mergea a
 - [x] Hidratar/persistir el store contra Supabase, con `localStorage` como caché
 - [x] Rediseño visual: fondo marrón, tarjetas crema, tipografía Outfit y favicon
 - [x] Secciones de la pestaña Datos desplegables, con badge que muestra cuántos ítems hay cargados
+- [x] Sync robusta: cambios pendientes no se pierden, detección de conflictos entre dispositivos, reintentos y keep-alive de Supabase
 
 ### Pendiente
 

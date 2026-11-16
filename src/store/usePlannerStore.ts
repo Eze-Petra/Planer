@@ -171,7 +171,14 @@ export const usePlannerStore = create<PlannerState>()(
           })),
         })),
 
-      hydrate: (data) => set(data),
+      // Con `?? []` un blob remoto viejo o incompleto no deja una colección en undefined.
+      hydrate: (data) =>
+        set({
+          fixed: data.fixed ?? [],
+          flexible: data.flexible ?? [],
+          subjects: data.subjects ?? [],
+          examBoards: data.examBoards ?? [],
+        }),
     }),
     {
       name: "planner-data",
