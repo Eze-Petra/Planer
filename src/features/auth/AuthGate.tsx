@@ -3,6 +3,7 @@ import { isSupabaseConfigured, supabase } from "../../lib/supabase";
 import { useSession } from "./useSession";
 import { useRemoteSync, type SyncStatus } from "./useRemoteSync";
 import { LoginForm } from "./LoginForm";
+import { ChangePasswordForm } from "./ChangePasswordForm";
 
 const STATUS_LABEL: Record<SyncStatus, string> = {
   idle: "",
@@ -53,10 +54,12 @@ function displayName(email: string | undefined): string {
  *   chica con el estado de sync + botón de salir.
  */
 export function AuthGate({ children }: { children: ReactNode }) {
-  const { session, loading } = useSession();
+  const { session, loading, recovering, finishRecovery } = useSession();
   const userId = session?.user.id ?? null;
   const { status, flush, clearLocal } = useRemoteSync(userId);
   const [signingOut, setSigningOut] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
+  const [passwordNotice, setPasswordNotice] = useState(false);
 
   // Antes de salir se sube lo pendiente. Si todo quedó en la nube, se vacía
   // este navegador (útil en una compu compartida); si no, se avisa.
@@ -81,6 +84,24 @@ export function AuthGate({ children }: { children: ReactNode }) {
   }
 
   if (!session) return <LoginForm />;
+
+  // Se entró con el link de "olvidé mi contraseña": la sesión ya está
+  // iniciada, falta elegir la contraseña nueva.
+  if (recovering) {
+    return (
+      <div className="mx-auto max-w-sm px-4 py-16">
+        <ChangePasswordForm
+          title="Elegí una contraseña nueva"
+          subtitle={`Para ${session.user.email}. La vas a usar para entrar desde cualquier dispositivo.`}
+          onDone={() => {
+            finishRecovery();
+            setPasswordNotice(true);
+          }}
+          onCancel={finishRecovery}
+        />
+      </div>
+    );
+  }
 
   return (
     <>
@@ -110,6 +131,18 @@ export function AuthGate({ children }: { children: ReactNode }) {
 
           <button
             type="button"
+            onClick={() => {
+              setChangingPassword((v) => !v);
+              setPasswordNotice(false);
+            }}
+            aria-expanded={changingPassword}
+            className="text-sm text-ink-soft underline-offset-2 hover:text-ink hover:underline"
+          >
+            Cambiar contraseña
+          </button>
+
+          <button
+            type="button"
             onClick={handleSignOut}
             disabled={signingOut}
             className="flex items-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-medium text-paper transition-opacity hover:opacity-90 disabled:opacity-60"
@@ -122,6 +155,24 @@ export function AuthGate({ children }: { children: ReactNode }) {
             {signingOut ? "Saliendo…" : "Salir"}
           </button>
         </div>
+        {passwordNotice && (
+          <p className="mt-2 px-8 text-sm text-ink" role="status">
+            Contraseña actualizada.
+          </p>
+        )}
+        {changingPassword && (
+          <div className="mx-auto mt-3 max-w-sm">
+            <ChangePasswordForm
+              title="Cambiar contraseña"
+              subtitle="La nueva contraseña sirve para entrar desde cualquier dispositivo."
+              onDone={() => {
+                setChangingPassword(false);
+                setPasswordNotice(true);
+              }}
+              onCancel={() => setChangingPassword(false)}
+            />
+          </div>
+        )}
       </div>
       {children}
     </>

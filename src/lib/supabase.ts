@@ -20,6 +20,14 @@ if (!url || !anonKey) {
   );
 }
 
+/**
+ * true si la página se abrió desde el link de "olvidé mi contraseña" del mail.
+ * Se lee antes de crear el cliente porque el cliente limpia el hash de la URL
+ * al tomar la sesión que viene en él.
+ */
+export const openedFromRecoveryLink =
+  typeof window !== "undefined" && window.location.hash.includes("type=recovery");
+
 export const supabase = url && anonKey ? createClient(url, anonKey) : null;
 
 /** true si hay credenciales configuradas y la sync remota puede habilitarse. */
