@@ -94,11 +94,10 @@ funciona igual pero solo con `localStorage`. Arquitectura:
 
 Ordenado por prioridad (sale de la revisión general del proyecto de noviembre 2026).
 
-**Exámenes**
+**Exámenes** (detalle en **Idea: exámenes por materia, resultados y pestaña Fechas**, más abajo)
 - [ ] Separar parciales y finales dentro de cada materia, cada uno con su formulario
-- [ ] Resultado de un examen (aprobado / desaprobado / ausente, nota opcional): deja de generar estudio; si se desaprueba, ofrece agregar recuperatorio u otra mesa; final aprobado = materia aprobada
-- [ ] Pestaña "Fechas": tabla materias × (Parcial 1, Parcial 2, Recuperatorio, Final) con fecha, días restantes y resultado; en celular, una tarjeta por materia
-  - Decisiones abiertas: recuperatorio como tipo propio, numeración automática de parciales, qué hacer con más de 2 parciales
+- [ ] Resultado de un examen (aprobado / desaprobado / ausente, nota opcional)
+- [ ] Pestaña "Fechas" con todas las materias y sus parciales, recuperatorios y finales
 
 **Datos y edición**
 - [ ] Confirmar o deshacer al borrar (hoy borrar una materia se lleva todos sus exámenes y TPs de un clic)
@@ -126,6 +125,58 @@ Ordenado por prioridad (sale de la revisión general del proyecto de noviembre 2
 
 **Ideas**
 - [ ] **Importar planes de estudio** (ver más abajo)
+
+## Idea: exámenes por materia, resultados y pestaña Fechas
+
+Tres cambios relacionados sobre cómo se cargan y siguen los exámenes. Conviene
+hacerlos en este orden, porque la pestaña Fechas muestra lo que agregan los
+dos primeros.
+
+**1. Parciales y finales separados dentro de cada materia**
+
+Hoy cada materia tiene un único formulario de examen que cambia según se
+elija "Parcial" o "Final". La idea es que la tarjeta de la materia tenga dos
+bloques, **Parciales** y **Finales**, cada uno con su lista y su formulario:
+el de parciales pide una fecha y el de finales pide elegir una mesa.
+
+Se descartó hacer secciones globales aparte ("Finales", "Parciales") donde
+se elige la materia: duplica el lugar donde se carga lo mismo y obliga a
+elegir la materia cada vez. La vista de todas las materias juntas la da la
+pestaña Fechas.
+
+**2. Resultado de cada examen**
+
+- Cuando la fecha ya pasó, el examen muestra botones **Aprobado /
+  Desaprobado / Ausente**, con nota opcional.
+- Un examen con resultado deja de generar estudio en el calendario.
+- Parcial desaprobado → botón "Agregar recuperatorio". Final desaprobado o
+  ausente → "Anotarse en otra mesa".
+- Final aprobado → la materia queda marcada como aprobada.
+
+Cambio de modelo: `Exam` suma `result?` y `grade?`.
+
+**3. Pestaña "Fechas"**
+
+Una tercera pestaña, junto a Datos y Calendario, con una tabla:
+
+| Materia  | Parcial 1 | Parcial 2 | Recuperatorio | Final  |
+|----------|-----------|-----------|---------------|--------|
+| Redes    | 12/09 ✓   | 24/10 ✗   | 07/11 ✓       | 15/12  |
+| Sistemas | 20/09 ✓   | en 5 días | —             | —      |
+
+- Cada celda muestra la fecha, los días que faltan si es futura y el
+  resultado con un color (aprobado / desaprobado / ausente).
+- En celular, la tabla no entra a lo ancho: se muestra una tarjeta por materia.
+
+**Decisiones abiertas**
+
+- ¿El recuperatorio es un tipo propio de examen (Parcial / Recuperatorio /
+  Final)? Recomendado: sí, así la tabla sabe en qué columna va.
+- ¿Los parciales se numeran solos por fecha (el primero es "Parcial 1")? ¿O
+  se les pone nombre a mano? Recomendado: numeración automática, con nombre
+  opcional.
+- Si una materia tiene más de dos parciales, ¿la tabla agrega columnas o se
+  fija en dos?
 
 ## Idea: importar planes de estudio
 
