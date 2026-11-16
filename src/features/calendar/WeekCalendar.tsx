@@ -1,11 +1,11 @@
 import { useMemo } from "react";
-import { format, addDays, isSameDay, isBefore, startOfDay } from "date-fns";
+import { format, addDays, isSameDay, isBefore, startOfDay, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { usePlannerStore } from "../../store/usePlannerStore";
 import { DAY_LABELS, WEEK_ORDER, type DayOfWeek } from "../../types/models";
-import { toMinutes } from "../../lib/time";
+import { formatDuration, toMinutes } from "../../lib/time";
 import {
-  buildWeekSchedule, AWAKE_START_MIN, type BlockKind, type ScheduledBlock,
+  buildWeekSchedule, AWAKE_START_MIN, type BlockKind, type ScheduledBlock, type ScheduleWarning,
 } from "../scheduler/schedule";
 
 // Misma hora en que el scheduler empieza a ubicar rutina/estudio — así la
@@ -48,6 +48,8 @@ export function WeekCalendar() {
         </div>
         <Legend />
       </header>
+
+      {schedule.warnings.length > 0 && <Warnings warnings={schedule.warnings} />}
 
       <div className="overflow-x-auto px-5 py-4">
         <div className="grid min-w-[720px] grid-cols-[3rem_repeat(7,1fr)]">
@@ -146,6 +148,51 @@ function DayColumn(props: { day: DayOfWeek; blocks: ScheduledBlock[]; hours: num
         );
       })}
     </div>
+  );
+}
+
+const dayList = (days: DayOfWeek[]) => days.map((d) => DAY_LABELS[d].toLowerCase()).join(", ");
+
+function warningText(w: ScheduleWarning): { strong: string; rest: string; severe: boolean } {
+  switch (w.kind) {
+    case "routine-unplaced":
+      return { strong: w.label, rest: ` no entró el ${dayList(w.days)}: no quedó ningún hueco libre del largo necesario.`, severe: true };
+    case "routine-moved":
+      return { strong: w.label, rest: ` quedó fuera de su franja preferida el ${dayList(w.days)} (se ubicó lo más cerca posible).`, severe: false };
+    case "study-short":
+      return {
+        strong: w.label,
+        rest: ` (${format(parseISO(w.dueDate), "EEEE d", { locale: es })}): faltan ~${formatDuration(w.missingMin)} de estudio que no entran antes de la fecha.`,
+        severe: true,
+      };
+  }
+}
+
+/** Lo que el scheduler no pudo acomodar como se pidió: nunca se descarta en silencio. */
+function Warnings(props: { warnings: ScheduleWarning[] }) {
+  return (
+    <section className="border-b border-line px-5 py-3" aria-label="Avisos del planificador">
+      <h3 className="text-xs font-medium uppercase tracking-wide text-ink-soft">
+        No todo entró como se pidió
+      </h3>
+      <ul className="mt-1.5 flex flex-col gap-1 text-sm">
+        {props.warnings.map((w, i) => {
+          const t = warningText(w);
+          return (
+            <li key={i} className="flex gap-2">
+              <span
+                aria-hidden
+                className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${t.severe ? "bg-danger" : "bg-accent"}`}
+              />
+              <span>
+                <span className="font-medium">{t.strong}</span>
+                <span className="text-ink-soft">{t.rest}</span>
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
   );
 }
 

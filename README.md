@@ -12,6 +12,7 @@ Supabase (ver sección **Despliegue y sincronización** más abajo).
 ```bash
 npm install
 npm run dev
+npm test    # tests de la sync y del scheduler (Vitest)
 ```
 
 Si ya está configurada la sincronización con Supabase (ver abajo), copiar
@@ -30,11 +31,11 @@ src/
 ├── features/
 │   ├── auth/              # Login (email + contraseña, con ver/ocultar), barra de usuario y sync remoto
 │   ├── fixed/             # Actividades fijas (día + horario exacto, franjas por día, editable)
-│   ├── flexible/          # Rutina diaria (duración, sin horario; se calcula sola si hay franja preferida)
+│   ├── flexible/          # Rutina diaria (duración, sin horario fijo; opcionalmente dentro de una franja preferida)
 │   ├── examBoards/        # Mesas de examen (turnos globales; de 1 día o por rango de semanas)
 │   ├── subjects/          # Materias, parciales/finales (finales se inscriben en una mesa), TPs
-│   ├── scheduler/         # Algoritmo de asignación: relleno de huecos por prioridad
-│   └── calendar/          # Vista semanal 06:00–23:59 con los bloques del scheduler
+│   ├── scheduler/         # Algoritmo de asignación: relleno de huecos por prioridad, con avisos de lo que no entra
+│   └── calendar/          # Vista semanal 06:00–23:59 con los bloques y avisos del scheduler
 ├── App.tsx                # Shell con pestañas
 └── index.css              # Tokens de diseño (fondo marrón, tarjetas crema, tipografía Outfit)
 ```
@@ -83,15 +84,48 @@ funciona igual pero solo con `localStorage`. Arquitectura:
 - [x] Rediseño visual: fondo marrón, tarjetas crema, tipografía Outfit y favicon
 - [x] Secciones de la pestaña Datos desplegables, con badge que muestra cuántos ítems hay cargados
 - [x] Sync robusta: cambios pendientes no se pierden, detección de conflictos entre dispositivos, reintentos y keep-alive de Supabase
+- [x] Primer login sube solo los datos que ya había en el navegador (reemplaza la idea del botón de migración única)
+- [x] Recuperar contraseña por mail y cambiarla desde la barra de usuario
+- [x] Avisos en el calendario de lo que no entró: rutina sin hueco, rutina fuera de su franja, estudio que no llega antes del examen
+- [x] Rutina con franja preferida: la duración es independiente de la franja ("45 min entre 12 y 15") y, si no entra, va al hueco más cercano
+- [x] Tests con Vitest (`npm test`): sync y scheduler
 
 ### Pendiente
 
-- [ ] Export/import JSON de los datos
-- [ ] Sincronización entre dispositivos: cerrar lo que falte
-  - [ ] Botón de migración única: subir los datos locales existentes a la nube
-  - [ ] Variables de entorno en Vercel (Production + Preview)
+Ordenado por prioridad (sale de la revisión general del proyecto de noviembre 2026).
+
+**Exámenes**
+- [ ] Separar parciales y finales dentro de cada materia, cada uno con su formulario
+- [ ] Resultado de un examen (aprobado / desaprobado / ausente, nota opcional): deja de generar estudio; si se desaprueba, ofrece agregar recuperatorio u otra mesa; final aprobado = materia aprobada
+- [ ] Pestaña "Fechas": tabla materias × (Parcial 1, Parcial 2, Recuperatorio, Final) con fecha, días restantes y resultado; en celular, una tarjeta por materia
+  - Decisiones abiertas: recuperatorio como tipo propio, numeración automática de parciales, qué hacer con más de 2 parciales
+
+**Datos y edición**
+- [ ] Confirmar o deshacer al borrar (hoy borrar una materia se lleva todos sus exámenes y TPs de un clic)
+- [ ] Editar rutinas, materias, exámenes y TPs (hoy solo se editan las actividades fijas; `updateFlexible` y `updateSubject` existen en el store pero sin UI)
+- [ ] Export/import JSON de los datos (backup independiente de Supabase)
+- [ ] Guardar `version` dentro del blob remoto, para poder migrar también los datos de la nube si cambia el modelo
+
+**Calendario y scheduler**
+- [ ] Mostrar los días de examen y entrega en el calendario
+- [ ] Navegar entre semanas (◀ ▶); el scheduler ya recibe `now`
+- [ ] Vista por día en celular (hoy la grilla de 720 px obliga a scrollear de costado)
+- [ ] Avisar cuando dos actividades fijas se pisan (hoy se dibujan una encima de la otra)
+- [ ] Llevar la cuenta del estudio hecho: cada semana se recalcula desde cero con el total de horas del examen
+- [ ] Estimación de mesas ("vas bien / no llegás") más realista: hoy no considera el tope de 90 min por sesión ni los parciales que compiten por el mismo tiempo
+- [ ] Rutinas con franja que cruza la medianoche
+
+**UX menor**
+- [ ] Recordar qué tarjetas desplegables quedaron abiertas
+- [ ] Traducir los mensajes de error de Supabase (hoy salen en inglés)
+
+**Herramientas y seguridad**
+- [ ] ESLint y CI que corra `tsc` + tests antes de deployar
+- [ ] Desactivar el registro público en Supabase si la app es solo para uso personal
+- [ ] Verificar que el keep-alive corre bien (Vercel → Settings → Cron Jobs)
+
+**Ideas**
 - [ ] **Importar planes de estudio** (ver más abajo)
-- [ ] Marcar el resultado de un examen (aprobado / desaprobado) y agregar una nueva instancia, para que el calendario se recalcule. Baja prioridad: hoy se puede resolver cargando otra fecha de final.
 
 ## Idea: importar planes de estudio
 

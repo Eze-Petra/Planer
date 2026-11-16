@@ -16,16 +16,18 @@ export function FlexibleActivities() {
   const [winStart, setWinStart] = useState("12:00");
   const [winEnd, setWinEnd] = useState("15:00");
 
-  // Si hay franja preferida, la duración sale de ahí — evita que queden
-  // desincronizadas (ej. franja de 1h con duración manual de "1 min").
-  const effectiveDuration = useWindow ? durationMin(winStart, winEnd) : durationMinutes;
-  const valid = name.trim().length > 0 && effectiveDuration > 0 && timesPerDay > 0;
+  // La franja es "en algún momento entre tal y tal hora": la duración puede
+  // ser menor (almorzar 45 min entre 12 y 15), nunca mayor.
+  const windowMin = durationMin(winStart, winEnd);
+  const windowTooShort = useWindow && durationMinutes > windowMin;
+  const valid =
+    name.trim().length > 0 && durationMinutes > 0 && timesPerDay > 0 && !windowTooShort;
 
   const submit = () => {
     if (!valid) return;
     addFlexible({
       name: name.trim(),
-      durationMin: effectiveDuration,
+      durationMin: durationMinutes,
       timesPerDay,
       preferredWindow: useWindow ? { start: winStart, end: winEnd } : undefined,
     });
@@ -37,7 +39,7 @@ export function FlexibleActivities() {
       title="Rutina diaria"
       badge={flexible.length}
       collapsible
-      subtitle="Sin horario fijo: el planificador la ubica cada día (comer, cocinar, descansar)."
+      subtitle="Sin horario fijo: el planificador la ubica cada día (comer, cocinar, descansar). Con franja preferida, la pone en algún momento dentro de ella; si no hay lugar, lo más cerca posible."
     >
       <div className="flex flex-col gap-4">
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_auto_auto]">
@@ -49,19 +51,13 @@ export function FlexibleActivities() {
               placeholder="Almorzar"
             />
           </Field>
-          <Field label={useWindow ? "Duración" : "Duración (min)"}>
-            {useWindow ? (
-              <div className={`${inputClass} flex w-28 items-center justify-center bg-paper-2 text-ink-soft`}>
-                {formatDuration(effectiveDuration)}
-              </div>
-            ) : (
-              <input
-                type="number" min={5} step={5}
-                className={`${inputClass} w-28`}
-                value={durationMinutes}
-                onChange={(e) => setDurationMinutes(Number(e.target.value))}
-              />
-            )}
+          <Field label="Duración (min)">
+            <input
+              type="number" min={5} step={5}
+              className={`${inputClass} w-28`}
+              value={durationMinutes}
+              onChange={(e) => setDurationMinutes(Number(e.target.value))}
+            />
           </Field>
           <Field label="Veces por día">
             <input
@@ -80,7 +76,7 @@ export function FlexibleActivities() {
               checked={useWindow}
               onChange={(e) => setUseWindow(e.target.checked)}
             />
-            Preferir una franja horaria (define la duración sola)
+            Preferir una franja horaria
           </label>
           {useWindow && (
             <>
@@ -93,6 +89,11 @@ export function FlexibleActivities() {
                   onChange={(e) => setWinEnd(e.target.value)} />
               </Field>
             </>
+          )}
+          {windowTooShort && (
+            <span className="text-xs text-accent">
+              La franja dura {formatDuration(windowMin)}: no entran {formatDuration(durationMinutes)}.
+            </span>
           )}
           <div className="ml-auto">
             <PrimaryButton onClick={submit} disabled={!valid}>

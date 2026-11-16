@@ -35,6 +35,18 @@ interface Interval {
   endMin: number;
 }
 
+/**
+ * Lo que el scheduler no pudo acomodar como se pidió. Se muestra en el
+ * calendario: nada se descarta en silencio.
+ */
+export type ScheduleWarning =
+  /** Una ocurrencia de la rutina no entró en ningún hueco esos días. */
+  | { kind: "routine-unplaced"; label: string; days: DayOfWeek[] }
+  /** Entró, pero fuera de su franja preferida (en el hueco más cercano). */
+  | { kind: "routine-moved"; label: string; days: DayOfWeek[] }
+  /** El examen/entrega es esta semana y no alcanzó el tiempo para todo el estudio. */
+  | { kind: "study-short"; label: string; missingMin: number; dueDate: string };
+
 /** Heurísticas del scheduler — ajustables sin tocar el algoritmo. */
 export const STUDY_MIN_PER_COMPLEXITY = 120; // minutos de estudio por punto de complejidad de un examen
 const MAX_SESSION_MIN = 90; // sesión de estudio más larga que arma por día para un mismo ítem
@@ -122,31 +134,53 @@ function applyFixedActivities(free: FreeByDay, fixed: FixedActivity[]): Schedule
   return blocks;
 }
 
-/** Busca el primer hueco (dentro de una ventana preferida si se puede) con lugar para `minutes`. */
+/**
+ * Dónde arrancar un bloque de `minutes`: dentro de la franja preferida si
+ * entra; si no, en el hueco cuyo arranque quede más cerca de la franja (no
+ * en el primero del día, que mandaba ej. el almuerzo a las 06:00). Sin
+ * franja, el primer hueco donde entre.
+ */
 function findGap(
   intervals: Interval[],
   minutes: number,
   preferred?: { startMin: number; endMin: number },
-): Interval | null {
+): { startMin: number; outsideWindow: boolean } | null {
   const fits = (iv: Interval) => iv.endMin - iv.startMin >= minutes;
-  if (preferred) {
-    for (const iv of intervals) {
-      const clippedStart = Math.max(iv.startMin, preferred.startMin);
-      const clippedEnd = Math.min(iv.endMin, preferred.endMin);
-      if (clippedEnd - clippedStart >= minutes) {
-        return { startMin: clippedStart, endMin: clippedEnd };
-      }
+  if (!preferred) {
+    const iv = intervals.find(fits);
+    return iv ? { startMin: iv.startMin, outsideWindow: false } : null;
+  }
+
+  for (const iv of intervals) {
+    const clippedStart = Math.max(iv.startMin, preferred.startMin);
+    const clippedEnd = Math.min(iv.endMin, preferred.endMin);
+    if (clippedEnd - clippedStart >= minutes) {
+      return { startMin: clippedStart, outsideWindow: false };
     }
   }
-  const iv = intervals.find(fits);
-  return iv ? { ...iv } : null;
+
+  let best: { startMin: number; distance: number } | null = null;
+  for (const iv of intervals.filter(fits)) {
+    // Dentro de cada hueco, lo más pegado posible a la franja; la distancia es
+    // lo que queda entre el bloque y la franja (antes o después de ella).
+    const startMin = Math.min(Math.max(preferred.startMin, iv.startMin), iv.endMin - minutes);
+    const distance = Math.max(
+      preferred.startMin - (startMin + minutes),
+      startMin - preferred.endMin,
+      0,
+    );
+    if (!best || distance < best.distance) best = { startMin, distance };
+  }
+  return best ? { startMin: best.startMin, outsideWindow: true } : null;
 }
 
 function applyFlexibleActivities(
   free: FreeByDay,
   flexible: FlexibleActivity[],
-): ScheduledBlock[] {
+  firstSchedulableDayIndex = 0,
+): { blocks: ScheduledBlock[]; warnings: ScheduleWarning[] } {
   const blocks: ScheduledBlock[] = [];
+  const warnings: ScheduleWarning[] = [];
   for (const activity of flexible) {
     const preferred = activity.preferredWindow
       ? {
@@ -154,11 +188,20 @@ function applyFlexibleActivities(
           endMin: toMinutes(activity.preferredWindow.end),
         }
       : undefined;
+    const unplacedDays: DayOfWeek[] = [];
+    const movedDays: DayOfWeek[] = [];
 
-    for (const day of WEEK_ORDER) {
+    WEEK_ORDER.forEach((day, dayIndex) => {
+      // Los días que ya pasaron se dibujan igual, pero no generan avisos.
+      const warn = dayIndex >= firstSchedulableDayIndex;
       for (let occurrence = 0; occurrence < activity.timesPerDay; occurrence++) {
         const gap = findGap(free[day], activity.durationMin, preferred);
-        if (!gap) continue; // no entra más esta ocurrencia — la agenda de ese día está llena
+        if (!gap) {
+          // No entra más esta ocurrencia — la agenda de ese día está llena.
+          if (warn && !unplacedDays.includes(day)) unplacedDays.push(day);
+          continue;
+        }
+        if (gap.outsideWindow && warn && !movedDays.includes(day)) movedDays.push(day);
         const busy = { startMin: gap.startMin, endMin: gap.startMin + activity.durationMin };
         free[day] = subtractBusy(free[day], busy);
         blocks.push({
@@ -171,15 +214,24 @@ function applyFlexibleActivities(
           color: ROUTINE_COLOR,
         });
       }
+    });
+
+    if (unplacedDays.length > 0) {
+      warnings.push({ kind: "routine-unplaced", label: activity.name, days: unplacedDays });
+    }
+    if (movedDays.length > 0) {
+      warnings.push({ kind: "routine-moved", label: activity.name, days: movedDays });
     }
   }
-  return blocks;
+  return { blocks, warnings };
 }
 
 interface WorkItem {
   label: string;
   color: string;
   dueDayIndex: number; // índice en weekDays hasta el cual se puede estudiar (inclusive)
+  /** Fecha del examen/entrega si cae dentro de esta semana (si no, lo que falte se estudia la próxima). */
+  dueThisWeek: string | null;
   minutesRemaining: number;
   priority: number;
 }
@@ -193,14 +245,13 @@ function buildWorkItems(subjects: Subject[], weekDays: Date[], today: Date): Wor
       const examDate = startOfDay(parseISO(exam.date));
       const daysLeft = differenceInCalendarDays(examDate, today);
       if (daysLeft < 0) continue; // ya pasó
-      const dueDayIndex = Math.min(
-        Math.max(differenceInCalendarDays(examDate, weekDays[0]), 0),
-        lastDayIndex,
-      );
+      const daysFromWeekStart = differenceInCalendarDays(examDate, weekDays[0]);
+      const dueDayIndex = Math.min(Math.max(daysFromWeekStart, 0), lastDayIndex);
       items.push({
         label: `${exam.kind === "final" ? "Final" : "Parcial"} — ${subject.name}`,
         color: subject.color,
         dueDayIndex,
+        dueThisWeek: daysFromWeekStart <= lastDayIndex ? exam.date : null,
         minutesRemaining: exam.complexity * STUDY_MIN_PER_COMPLEXITY,
         priority: priorityScore(exam.complexity, daysLeft),
       });
@@ -212,18 +263,23 @@ function buildWorkItems(subjects: Subject[], weekDays: Date[], today: Date): Wor
         ? differenceInCalendarDays(startOfDay(parseISO(task.dueDate)), today)
         : FALLBACK_TASK_DAYS_LEFT;
       if (daysLeft < 0) continue;
-      const dueDayIndex = task.dueDate
-        ? Math.min(
-            Math.max(differenceInCalendarDays(startOfDay(parseISO(task.dueDate)), weekDays[0]), 0),
-            lastDayIndex,
-          )
-        : lastDayIndex;
+      const daysFromWeekStart = task.dueDate
+        ? differenceInCalendarDays(startOfDay(parseISO(task.dueDate)), weekDays[0])
+        : null;
+      const dueDayIndex =
+        daysFromWeekStart === null
+          ? lastDayIndex
+          : Math.min(Math.max(daysFromWeekStart, 0), lastDayIndex);
       // Los TPs no tienen complejidad propia: se aproxima con las horas estimadas.
       const pseudoComplexity = Math.min(5, Math.max(1, Math.round(task.estimatedHours / 2)));
       items.push({
         label: `${task.title} — ${subject.name}`,
         color: subject.color,
         dueDayIndex,
+        dueThisWeek:
+          task.dueDate && daysFromWeekStart !== null && daysFromWeekStart <= lastDayIndex
+            ? task.dueDate
+            : null,
         minutesRemaining: task.estimatedHours * 60,
         priority: priorityScore(pseudoComplexity, daysLeft),
       });
@@ -295,6 +351,7 @@ function applyStudyItems(
 export interface WeekSchedule {
   weekStart: Date;
   blocks: ScheduledBlock[];
+  warnings: ScheduleWarning[];
 }
 
 /**
@@ -310,18 +367,32 @@ export function buildWeekSchedule(
   const weekDays = WEEK_ORDER.map((_, i) => addDays(weekStart, i));
   const today = startOfDay(now);
 
-  const free = initFreeByDay();
-  const fixedBlocks = applyFixedActivities(free, data.fixed);
-  const flexibleBlocks = applyFlexibleActivities(free, data.flexible);
-
   const firstSchedulableDayIndex = Math.max(
     weekDays.findIndex((d) => !isBefore(d, today)),
     0,
   );
+
+  const free = initFreeByDay();
+  const fixedBlocks = applyFixedActivities(free, data.fixed);
+  const flexible = applyFlexibleActivities(free, data.flexible, firstSchedulableDayIndex);
+
   const workItems = buildWorkItems(data.subjects, weekDays, today);
   const studyBlocks = applyStudyItems(free, workItems, firstSchedulableDayIndex);
 
-  return { weekStart, blocks: [...fixedBlocks, ...flexibleBlocks, ...studyBlocks] };
+  const studyWarnings: ScheduleWarning[] = workItems
+    .filter((it) => it.dueThisWeek !== null && it.minutesRemaining > 0)
+    .map((it) => ({
+      kind: "study-short",
+      label: it.label,
+      missingMin: it.minutesRemaining,
+      dueDate: it.dueThisWeek as string,
+    }));
+
+  return {
+    weekStart,
+    blocks: [...fixedBlocks, ...flexible.blocks, ...studyBlocks],
+    warnings: [...flexible.warnings, ...studyWarnings],
+  };
 }
 
 /**
