@@ -110,7 +110,7 @@ Ordenado por prioridad (sale de la revisión general del proyecto de noviembre 2
 - [ ] Navegar entre semanas (◀ ▶); el scheduler ya recibe `now`
 - [ ] Vista por día en celular (hoy la grilla de 720 px obliga a scrollear de costado)
 - [ ] Avisar cuando dos actividades fijas se pisan (hoy se dibujan una encima de la otra)
-- [ ] Llevar la cuenta del estudio hecho: cada semana se recalcula desde cero con el total de horas del examen
+- [ ] Llevar la cuenta del estudio hecho: cada semana se recalcula desde cero con el total de horas del examen o crear un apartado para poder cargar progreso de estudio (formato barra o similar)
 - [ ] Estimación de mesas ("vas bien / no llegás") más realista: hoy no considera el tope de 90 min por sesión ni los parciales que compiten por el mismo tiempo
 - [ ] Rutinas con franja que cruza la medianoche
 
